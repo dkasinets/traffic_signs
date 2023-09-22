@@ -18,3 +18,21 @@
 - `ts_data.data`, `classes.names`, `train.txt`, `test.txt`, `yolov3_ts_test.cfg`, `yolov3_ts_train.cfg`.
 ## Acknowledgements
 - Initial data is German Traffic Sign Detection Benchmark (GTDRB).
+
+# Documentation about how to run the code.
+First install conda:
+https://docs.continuum.io/free/anaconda/install/
+
+## Then setup a virtual environment with conda:
+- `conda create -n kasinets_environment python=3.9 tensorflow opencv`
+- `conda activate kasinets_environment`
+
+## Finally, install more packages:
+- `conda install -c conda-forge matplotlib`
+- `conda install -c anaconda pandas`
+- `conda install -c anaconda numpy`
+- `conda install -c anaconda scikit-learn`
+- `conda install -c anaconda seaborn`
+
+## Inside a virtual environment, run the main code:
+- `python CNN_model.py`
