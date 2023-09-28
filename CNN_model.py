@@ -157,7 +157,7 @@ def runSimpleModel(train_df, test_df, debug = False):
     print(test_dataset)
     
     tDIR, sDIR = OUTPUT_DIR_TRAIN, OUTPUT_DIR_TEST
-    BS, image_size = 32, (128, 128) # batch size; image dimensions required by pretrained model
+    BS, image_size = 64, (128, 128) # batch size; image dimensions required by pretrained model
 
     # Data preprocessing and augmentation
     datagen = ImageDataGenerator(
@@ -189,8 +189,8 @@ def runSimpleModel(train_df, test_df, debug = False):
 
     # Define the CNN model
     input_layer = layers.Input(shape = (image_size[0], image_size[1], 3))
-    x = layers.Conv2D(32, (3, 3), activation='relu')(input_layer)
-    x = layers.MaxPooling2D((2, 2))(x)
+    x = layers.Conv2D(128, (4, 4), activation='relu')(input_layer)
+    x = layers.MaxPooling2D((4, 4))(x)
     x = layers.Conv2D(64, (3, 3), activation='relu')(x)
     x = layers.MaxPooling2D((2, 2))(x)
     x = layers.Flatten()(x)
