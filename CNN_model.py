@@ -6,20 +6,18 @@ import pandas as pd
 import time
 import matplotlib.pyplot as plt
 import os
-import json
-import seaborn as sns
 import cv2 as cv
-from sklearn.metrics import accuracy_score, confusion_matrix
-
-from keras.layers import Flatten, Dense, Activation, Dropout, MaxPooling2D, Conv2D, GlobalAveragePooling2D
-from keras.models import Sequential
-from tensorflow.keras.applications import resnet50, xception, mobilenet, mobilenet_v2, mobilenet_v3, efficientnet
-from tensorflow.keras.utils import image_dataset_from_directory as idfd
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras import layers
 
 ROOT_DIR = "/Users/Kasinets/Dropbox/Mac/Desktop/SP22_JHU/Rodriguez/traffic_signs"
 DATA_DIR = f"{ROOT_DIR}/data/ts/ts/"
-OUTPUT_DIR_TRAIN = f"{ROOT_DIR}/data/train_cropped/images/"
-OUTPUT_DIR_TEST = f"{ROOT_DIR}/data/test_cropped/images/"
+# train/test cropped
+OUTPUT_DIR_TRAIN_CROPPED = f"{ROOT_DIR}/data/train_cropped/images/"
+OUTPUT_DIR_TEST_CROPPED = f"{ROOT_DIR}/data/test_cropped/images/"
+# train/test
+OUTPUT_DIR_TRAIN = f"{ROOT_DIR}/data/train/images/"
+OUTPUT_DIR_TEST = f"{ROOT_DIR}/data/test/images/"
 
 class Timer():
     """ Utility class (timer) """
@@ -56,6 +54,7 @@ def getDataFrame(labels, directory_path, files):
             txt_filepath = os.path.join(directory_path, f)
             with open(txt_filepath, 'r') as file:
                 lines = file.readlines()
+                index = 0
                 for line in lines:
                     fields = line.strip().split()
                     if len(fields) == 5:
@@ -63,8 +62,9 @@ def getDataFrame(labels, directory_path, files):
                         data.append([int(class_number), float(center_x), 
                                     float(center_y), float(width), 
                                     float(height), f, 
-                                    f"{os.path.splitext(os.path.basename(f))[0]}.jpg", 
+                                    f"{os.path.splitext(os.path.basename(f))[0]}_{index}.jpg", 
                                     labels['Class labels'].iloc[int(class_number)]])
+                    index += 1
     return pd.DataFrame(data, columns=['Class Number', 'Center in X', 'Center in Y', 
                                        'Width', 'Height', "Text Filename", "Image Filename", "Class Label"])
 
@@ -78,7 +78,7 @@ def getTrainDataFrame(labels):
             fields = line.strip().split()
             if len(fields) == 1:
                 train_files.append(f"{os.path.splitext(os.path.basename(fields[0]))[0]}.txt")
-    train_files.sort()
+    # train_files.sort()
     tDS = getDataFrame(labels, directory_path, train_files)
     return tDS
 
@@ -92,17 +92,18 @@ def getTestDataFrame(labels):
             fields = line.strip().split()
             if len(fields) == 1:
                 test_files.append(f"{os.path.splitext(os.path.basename(fields[0]))[0]}.txt")
-    test_files.sort()
+    # test_files.sort()
     tDS = getDataFrame(labels, directory_path, test_files)
     return tDS
 
 def crop_and_store_images(df, image_dir, output_dir):
+    """ Crop and store road signs """
     # Create the output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
 
     # Loop through the DataFrame
     for index, row in df.iterrows():
-        image_filename = os.path.join(image_dir, row['Image Filename'])
+        image_filename = os.path.join(image_dir, f"{row['Image Filename'][:-6]}.jpg")
         img = cv.imread(image_filename)
 
         # Extract bounding box coordinates
@@ -118,128 +119,138 @@ def crop_and_store_images(df, image_dir, output_dir):
         class_dir = os.path.join(output_dir, f"{row['Class Number']}")
         os.makedirs(class_dir, exist_ok=True)
         
-        output_filename = os.path.join(class_dir, f"{row['Image Filename'][:-4]}_{index}.jpg")
+        output_filename = os.path.join(class_dir, f"{row['Image Filename']}")
         cv.imwrite(output_filename, cropped_img)
 
-# def runEfficientNetB0(tDS, vDS, image_size):
-#     """ EfficientNetB0 """
-#     # Below we replace the top layer of the pretrained CNN EfficientNetB0 and train the new layer only (all remaining pretrained layers are frozen).
-#     tf.random.set_seed(0) # seed
-#     Init = keras.initializers.RandomNormal(seed = 0)
+def store_images(df, image_dir, output_dir):
+    """ Store images (into train or test) """
+    if not os.path.exists(output_dir):
+        # Create the output directory if it doesn't exist
+        os.makedirs(output_dir, exist_ok=True)
 
-#     pm = efficientnet.EfficientNetB0(weights="imagenet", include_top = False, input_shape = (image_size[0], image_size[1], 3)) # pretrained model
-#     avg = GlobalAveragePooling2D(data_format = 'channels_last')(pm.output) # collapse spatial dimensions
-#     output = Dense(6, activation = "softmax", kernel_initializer = Init)(avg)
+        # Loop through the DataFrame
+        for index, row in df.iterrows():
+            image_filename = os.path.join(image_dir, f"{row['Image Filename'][:-6]}.jpg")
+            img = cv.imread(image_filename)
 
-#     pm1 = keras.Model(inputs = pm.input, outputs = output)
-#     for l in pm.layers: l.trainable = False # freeze layers from training
+            output_filename = os.path.join(output_dir, f"{row['Image Filename']}")
+            cv.imwrite(output_filename, img)
 
-#     lrs = keras.optimizers.schedules.ExponentialDecay(initial_learning_rate = .2, decay_steps = 10000, decay_rate = 0.01)
-#     opt = keras.optimizers.SGD(learning_rate = lrs, momentum = 0.9)
+def runSimpleModel(train_df, test_df, debug = False):
+    """ Simple multi-output CNN (images as inputs and multiple numerical target columns) """
 
-#     pm1.compile(loss = "categorical_crossentropy", optimizer = opt, metrics = ["accuracy"])
-#     hist = pm1.fit(tDS, epochs = 2, validation_data = vDS) 
+    print("\nrunSimpleModel\n")
+    train_dataset = train_df[['Class Number', 'Center in X', 'Center in Y', 'Width', 'Height', 'Image Filename']]
+    test_dataset = test_df[['Class Number', 'Center in X', 'Center in Y', 'Width', 'Height', 'Image Filename']]
 
-#     # -------------------------- 
-#     # Below we post-train all pre-trained layers after unlocking them.
-#     for l in pm.layers: l.trainable = True # allow training
-
-#     lrs = keras.optimizers.schedules.ExponentialDecay(initial_learning_rate = .01, decay_steps = 10000, decay_rate = 0.001)
-#     opt = keras.optimizers.SGD(learning_rate = lrs, momentum = 0.9)
-
-#     pm1.compile(loss="categorical_crossentropy", optimizer = opt, metrics = ['accuracy'])
-#     hist = pm1.fit(tDS, epochs = 20, validation_data = vDS)
+    print("train_df: ")
+    print(train_dataset)
+    print("\ntest_df: ")
+    print(test_dataset)
     
-#     print("\n")
+    tDIR, sDIR = OUTPUT_DIR_TRAIN, OUTPUT_DIR_TEST
+    BS, image_size = 32, (128, 128) # batch size; image dimensions required by pretrained model
 
-#     return pm1
+    # Data preprocessing and augmentation
+    datagen = ImageDataGenerator(
+        rescale = 1.0 / 255.0,
+        validation_split = 0.2
+    )
+    train_generator = datagen.flow_from_dataframe(
+        dataframe = train_dataset,
+        directory = tDIR,
+        x_col = "Image Filename", # Column containing image filenames
+        y_col = ["Class Number", "Center in X", "Center in Y", "Width", "Height"],
+        target_size = image_size,
+        batch_size = BS,
+        class_mode = 'other',
+        subset = 'training'
+    )
+    validation_generator = datagen.flow_from_dataframe(
+        dataframe = train_dataset,
+        directory = tDIR,
+        x_col = "Image Filename",
+        y_col = ["Class Number", "Center in X", "Center in Y", "Width", "Height"],
+        target_size = image_size,
+        batch_size = BS,
+        class_mode='other',
+        subset='validation'
+    )
 
-# def presentResuls(output_dict, model_name):
-#     """ Show results of the prediction """
-#     ground_truths = {}
-#     # Get actual values 
-#     with open("ground_truths.json", "r") as json_file:
-#         ground_truths = json.load(json_file)
+    # Define the CNN model
+    input_layer = layers.Input(shape = (image_size[0], image_size[1], 3))
+    x = layers.Conv2D(32, (3, 3), activation='relu')(input_layer)
+    x = layers.MaxPooling2D((2, 2))(x)
+    x = layers.Conv2D(64, (3, 3), activation='relu')(x)
+    x = layers.MaxPooling2D((2, 2))(x)
+    x = layers.Flatten()(x)
+    x = layers.Dense(128, activation='relu')(x)
     
-#     predicted_labels = []
-#     true_labels = []
-#     for key, value in output_dict.items():
-#         predicted_labels.append(output_dict[key])
-#         true_labels.append(ground_truths[key])
-    
-#     # Accuracy
-#     accuracy = accuracy_score(true_labels, predicted_labels)
-#     print(f"\nAccuracy Score: {round(accuracy, 4)}\n")
+    # Create separate heads for each label
+    # TODO: class_number_head should use softmax (it is categorical)
+    class_number_head = layers.Dense(1, activation="linear", name='class_number')(x)
+    center_x_head = layers.Dense(1, activation="linear", name='center_x')(x)
+    center_y_head = layers.Dense(1, activation="linear", name='center_y')(x)
+    width_head = layers.Dense(1, activation="linear", name='width')(x)
+    height_head = layers.Dense(1, activation="linear", name='height')(x)
 
-#     # Confusion matrix
-#     conf_matrix = confusion_matrix(true_labels, predicted_labels)
+    # Create the multi-output model
+    model = keras.Model(inputs=input_layer, outputs=[class_number_head, center_x_head, center_y_head, width_head, height_head])
 
-#     # Visualize Confusion matrix
-#     # Create a heatmap
-#     class_labels = [0, 1, 2, 3] # sorted numbers (confusion_matrix() sorts integer classes in ascending order)
-#     plt.figure(figsize = (8, 7))
-#     sns.set(font_scale = 1.2)
-#     sns.heatmap(conf_matrix, annot = True, fmt = "d", cmap = "Blues", 
-#                 xticklabels = class_labels,
-#                 yticklabels = class_labels)
-#     plt.xlabel("Predicted")
-#     plt.ylabel("Actual")
-#     plt.title(f"Confusion Matrix ({model_name} Accuracy: {round(accuracy, 4)})")
-#     plt.xticks(rotation = 45, ha = "right") # Rotate x-axis labels for better readability
-#     plt.yticks(rotation = 0) # Keep y-axis labels horizontal
+    # Compile the model with appropriate loss functions and metrics
+    # TODO: class_number_head should use softmax (it is categorical)
+    model.compile(optimizer='adam',
+                loss={'class_number': 'mean_squared_error',
+                        'center_x': 'mean_squared_error',
+                        'center_y': 'mean_squared_error',
+                        'width': 'mean_squared_error',
+                        'height': 'mean_squared_error'},
+                metrics={'class_number': 'mae',
+                        'center_x': 'mae',
+                        'center_y': 'mae',
+                        'width': 'mae',
+                        'height': 'mae'})
 
-#     results_file = f"{model_name}_confusion_matrix_{round(accuracy, 4)}_percent.png"
-#     plt.savefig(results_file)
-#     plt.show()
+    # Train the model
+    epochs = 10
+    history = model.fit(train_generator, epochs=epochs, validation_data=validation_generator)
 
-# def runCustomModel(model_name = "EfficientNetB0", debug = False):
-#     """ Classify dollar bills """
+    # Evaluate the model (optional)
+    evaluation = model.evaluate(validation_generator)
+    print("\nEvaluation Loss:", evaluation)
+    print("Evaluation MAE:", evaluation)
 
-#     tDIR, sDIR = OUTPUT_DIR_TRAIN, OUTPUT_DIR_TEST
+    # Make predictions on the test set
+    test_datagen = ImageDataGenerator(rescale = 1.0/255.0)
+    test_generator = test_datagen.flow_from_dataframe(
+        dataframe = test_dataset,
+        directory = sDIR,
+        x_col = "Image Filename",
+        y_col = ["Class Number", "Center in X", "Center in Y", "Width", "Height"],
+        target_size = image_size,
+        batch_size = BS,
+        class_mode='other'
+    )
 
-#     tmr = Timer() # Set timer.
-#     print("\n")
+    predictions = model.predict(test_generator)
+    print(len(predictions[0]))
+    print(len(predictions))
 
-#     BS, image_size = 32, (224, 224) # batch size; image dimensions required by pretrained model
-    
-#     # --------------------------
-#     # train
-#     tDS = idfd(tDIR, labels = 'inferred', label_mode = 'categorical', subset = 'training', validation_split = 0.2,
-#             class_names = None, color_mode = 'rgb', batch_size = BS, image_size = image_size, shuffle = True, seed = 0).prefetch(buffer_size = tf.data.AUTOTUNE) # training dataset
-#     # validation
-#     vDS = idfd(tDIR, labels = 'inferred', label_mode = 'categorical', subset = 'validation', validation_split = 0.2,
-#             class_names = None, color_mode = 'rgb', batch_size = BS, image_size = image_size, shuffle = True, seed = 0).prefetch(buffer_size = tf.data.AUTOTUNE) # validation dataset
-#     # test
-#     sDS = idfd(sDIR, labels = None, label_mode = 'categorical', subset = None, validation_split = None,
-#             class_names = None, color_mode = 'rgb', batch_size = BS, image_size = image_size, shuffle = False, seed = 0) # don't prefetch this testing dataset
-    
-#     print("\n")
-#     print(tf.reduce_sum([tf.reduce_sum(f) for f in list(tDS.take(1))[0][0][:10]])) # to validate seeding of file sampling
-#     print("\n")
+    # Assuming 'predictions' is a list of 5 NumPy arrays, one for each output
+    class_number_predictions, center_x_predictions, center_y_predictions, width_predictions, height_predictions = predictions
 
-#     pm1 = runEfficientNetB0(tDS, vDS, image_size)
+    # Create a DataFrame
+    prediction_df = pd.DataFrame({
+        "Class Number": class_number_predictions.flatten(),
+        "Center in X": center_x_predictions.flatten(),
+        "Center in Y": center_y_predictions.flatten(),
+        "Width": width_predictions.flatten(),
+        "Height": height_predictions.flatten(),
+        'Image Filename': test_dataset['Image Filename'],
+    })
 
-#     # -------------------------- 
-#     # Make Predictions
-#     filenames = [os.path.basename(file_path) for file_path in sDS.file_paths]
-
-#     y_pred = pm1.predict(sDS)
-#     y_pred_indices = np.argmax(y_pred, axis=1)
-
-#     class_labels = ['0', '1', '2', '3'] # sorted class labels (strings)
-#     class_labels_dict = {idx: val for idx, val in enumerate(class_labels)}
-#     mapped_class_labels = [int(class_labels_dict[idx]) for idx in y_pred_indices]
-    
-#     output_dict = {file_name: mapped_class_labels[idx] for idx, file_name in enumerate(filenames)} # Create output to be returned
-
-#     # -------------------------- 
-#     # Evaluate
-#     if debug:
-#         presentResuls(output_dict, model_name)
-        
-#     tmr.ShowTime() # End timer.
-
-#     return output_dict
+    print("\npredictions: ")
+    print(prediction_df)
 
 def main(debug):
     print("\n")
@@ -253,21 +264,16 @@ def main(debug):
     print(labels)
 
     # train
-    train = getTrainDataFrame(labels)
-    print("\ntrain:")
-    print(train)
-
+    train_df = getTrainDataFrame(labels)
     # test
-    test = getTestDataFrame(labels)
-    print("\ntest:")
-    print(test)
+    test_df = getTestDataFrame(labels)
 
-    # store cropped train and test images
-    crop_and_store_images(df = train, image_dir = DATA_DIR, output_dir = OUTPUT_DIR_TRAIN)
-    crop_and_store_images(df = test, image_dir = DATA_DIR, output_dir = OUTPUT_DIR_TEST)
-
-    # TODO: Baseline
-    # runCustomModel(model_name = "EfficientNetB0", debug = True)
+    # separate into train/test subfolders
+    store_images(df = train_df, image_dir = DATA_DIR, output_dir = OUTPUT_DIR_TRAIN)
+    store_images(df = test_df, image_dir = DATA_DIR, output_dir = OUTPUT_DIR_TEST)
+    
+    # Simple CNN model
+    runSimpleModel(train_df, test_df, debug = True)
 
     tmr.ShowTime() # End timer.
 
