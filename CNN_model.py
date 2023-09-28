@@ -9,6 +9,7 @@ import os
 import cv2 as cv
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras import layers
+from tensorflow.keras.utils import to_categorical
 
 ROOT_DIR = "/Users/Kasinets/Dropbox/Mac/Desktop/SP22_JHU/Rodriguez/traffic_signs"
 DATA_DIR = f"{ROOT_DIR}/data/ts/ts/"
@@ -143,6 +144,13 @@ def runSimpleModel(train_df, test_df, debug = False):
     train_dataset = train_df[['Class Number', 'Center in X', 'Center in Y', 'Width', 'Height', 'Image Filename']]
     test_dataset = test_df[['Class Number', 'Center in X', 'Center in Y', 'Width', 'Height', 'Image Filename']]
 
+    train_class_number_labels_one_hot = to_categorical(train_dataset['Class Number'], num_classes = 4)
+    test_class_number_labels_one_hot = to_categorical(test_dataset['Class Number'], num_classes = 4)
+    # Add one-hot encoded columns to the DataFrame
+    for i in range(4):
+        train_dataset[f'Class Number {i}'] = train_class_number_labels_one_hot[:, i]
+        test_dataset[f'Class Number {i}'] = test_class_number_labels_one_hot[:, i]
+
     print("train_df: ")
     print(train_dataset)
     print("\ntest_df: ")
@@ -160,7 +168,8 @@ def runSimpleModel(train_df, test_df, debug = False):
         dataframe = train_dataset,
         directory = tDIR,
         x_col = "Image Filename", # Column containing image filenames
-        y_col = ["Class Number", "Center in X", "Center in Y", "Width", "Height"],
+        # y_col = ["Class Number", "Center in X", "Center in Y", "Width", "Height"],
+        y_col = ["Class Number 0", "Class Number 1", "Class Number 2", "Class Number 3", "Center in X", "Center in Y", "Width", "Height"],
         target_size = image_size,
         batch_size = BS,
         class_mode = 'other',
@@ -170,7 +179,8 @@ def runSimpleModel(train_df, test_df, debug = False):
         dataframe = train_dataset,
         directory = tDIR,
         x_col = "Image Filename",
-        y_col = ["Class Number", "Center in X", "Center in Y", "Width", "Height"],
+        # y_col = ["Class Number", "Center in X", "Center in Y", "Width", "Height"],
+        y_col = ["Class Number 0", "Class Number 1", "Class Number 2", "Class Number 3", "Center in X", "Center in Y", "Width", "Height"],
         target_size = image_size,
         batch_size = BS,
         class_mode='other',
@@ -187,29 +197,37 @@ def runSimpleModel(train_df, test_df, debug = False):
     x = layers.Dense(128, activation='relu')(x)
     
     # Create separate heads for each label
-    # TODO: class_number_head should use softmax (it is categorical)
-    class_number_head = layers.Dense(1, activation="linear", name='class_number')(x)
+    class_number_head = layers.Dense(1, activation="sigmoid", name='class_number')(x)
+    class_number_head1 = layers.Dense(1, activation="sigmoid", name='class_number1')(x)
+    class_number_head2 = layers.Dense(1, activation="sigmoid", name='class_number2')(x)
+    class_number_head3 = layers.Dense(1, activation="sigmoid", name='class_number3')(x)
     center_x_head = layers.Dense(1, activation="linear", name='center_x')(x)
     center_y_head = layers.Dense(1, activation="linear", name='center_y')(x)
     width_head = layers.Dense(1, activation="linear", name='width')(x)
     height_head = layers.Dense(1, activation="linear", name='height')(x)
 
     # Create the multi-output model
-    model = keras.Model(inputs=input_layer, outputs=[class_number_head, center_x_head, center_y_head, width_head, height_head])
+    # model = keras.Model(inputs=input_layer, outputs=[class_number_head, center_x_head, center_y_head, width_head, height_head])
+    model = keras.Model(inputs=input_layer, outputs=[class_number_head, class_number_head1, class_number_head2, class_number_head3, center_x_head, center_y_head, width_head, height_head])
 
     # Compile the model with appropriate loss functions and metrics
-    # TODO: class_number_head should use softmax (it is categorical)
     model.compile(optimizer='adam',
-                loss={'class_number': 'mean_squared_error',
-                        'center_x': 'mean_squared_error',
-                        'center_y': 'mean_squared_error',
-                        'width': 'mean_squared_error',
-                        'height': 'mean_squared_error'},
-                metrics={'class_number': 'mae',
-                        'center_x': 'mae',
-                        'center_y': 'mae',
-                        'width': 'mae',
-                        'height': 'mae'})
+                loss={'class_number': 'binary_crossentropy',
+                      'class_number1': 'binary_crossentropy',
+                      'class_number2': 'binary_crossentropy',
+                      'class_number3': 'binary_crossentropy',
+                      'center_x': 'mean_squared_error', 
+                      'center_y': 'mean_squared_error', 
+                      'width': 'mean_squared_error', 
+                      'height': 'mean_squared_error'},
+                metrics={'class_number': 'accuracy',
+                         'class_number1': 'accuracy',
+                         'class_number2': 'accuracy',
+                         'class_number3': 'accuracy', 
+                         'center_x': 'mae', 
+                         'center_y': 'mae', 
+                         'width': 'mae', 
+                         'height': 'mae'})
 
     # Train the model
     epochs = 10
@@ -226,7 +244,8 @@ def runSimpleModel(train_df, test_df, debug = False):
         dataframe = test_dataset,
         directory = sDIR,
         x_col = "Image Filename",
-        y_col = ["Class Number", "Center in X", "Center in Y", "Width", "Height"],
+        # y_col = ["Class Number", "Center in X", "Center in Y", "Width", "Height"],
+        y_col = ["Class Number 0", "Class Number 1", "Class Number 2", "Class Number 3", "Center in X", "Center in Y", "Width", "Height"],
         target_size = image_size,
         batch_size = BS,
         class_mode='other'
@@ -236,12 +255,15 @@ def runSimpleModel(train_df, test_df, debug = False):
     print(len(predictions[0]))
     print(len(predictions))
 
-    # Assuming 'predictions' is a list of 5 NumPy arrays, one for each output
-    class_number_predictions, center_x_predictions, center_y_predictions, width_predictions, height_predictions = predictions
+    # class_number_predictions, center_x_predictions, center_y_predictions, width_predictions, height_predictions = predictions
+    class_number_predictions, class_number_predictions1, class_number_predictions2, class_number_predictions3, center_x_predictions, center_y_predictions, width_predictions, height_predictions = predictions
 
     # Create a DataFrame
     prediction_df = pd.DataFrame({
-        "Class Number": class_number_predictions.flatten(),
+        "Class Number 0 ": class_number_predictions.flatten(),
+        "Class Number 1": class_number_predictions1.flatten(),
+        "Class Number 2": class_number_predictions2.flatten(),
+        "Class Number 3": class_number_predictions3.flatten(),
         "Center in X": center_x_predictions.flatten(),
         "Center in Y": center_y_predictions.flatten(),
         "Width": width_predictions.flatten(),
