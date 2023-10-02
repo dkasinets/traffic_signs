@@ -9,6 +9,7 @@ from tensorflow.keras.applications import resnet50, xception, mobilenet, mobilen
 from keras.layers import Flatten, Dense, Activation, Dropout, MaxPooling2D, Conv2D, GlobalAveragePooling2D
 from tensorflow.keras.utils import image_dataset_from_directory as idfd
 
+
 def presentResults(output_dict, model_name):
     """ Show results of the prediction """
     ground_truths = {}
@@ -46,6 +47,7 @@ def presentResults(output_dict, model_name):
     results_file = f"{model_name}_confusion_matrix_{round(accuracy, 4)}_percent.png"
     plt.savefig(results_file)
     plt.show()
+
 
 # Model -------
 def runEfficientNetB0(tDS, image_size):
@@ -106,6 +108,7 @@ def runEfficientNetB0(tDS, image_size):
     print("\n")
 
     return pm1
+
 
 def runCustomModel(train_df, test_df, OUTPUT_DIR_TRAIN, OUTPUT_DIR_TEST, model_name = "EfficientNetB0", debug = False):
     """ Classify dollar bills """

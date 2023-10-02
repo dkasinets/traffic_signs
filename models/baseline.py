@@ -1,144 +1,16 @@
-import tensorflow as tf
-import tensorflow.keras as keras 
-
-import numpy as np
-import pandas as pd
-import time
-import matplotlib.pyplot as plt
-import os
-import cv2 as cv
+from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras import layers
-from tensorflow.keras.utils import to_categorical
+import tensorflow.keras as keras
+import pandas as pd
 
-ROOT_DIR = "/Users/Kasinets/Dropbox/Mac/Desktop/SP22_JHU/Rodriguez/traffic_signs"
-DATA_DIR = f"{ROOT_DIR}/data/ts/ts/"
-# train/test cropped
-OUTPUT_DIR_TRAIN_CROPPED = f"{ROOT_DIR}/data/train_cropped/images/"
-OUTPUT_DIR_TEST_CROPPED = f"{ROOT_DIR}/data/test_cropped/images/"
-# train/test
-OUTPUT_DIR_TRAIN = f"{ROOT_DIR}/data/train/images/"
-OUTPUT_DIR_TEST = f"{ROOT_DIR}/data/test/images/"
 
-class Timer():
-    """ Utility class (timer) """
-    def __init__(self, lim:'RunTimeLimit'=60*5):
-        self.t0, self.lim, _ = time.time(), lim, print(f'⏳ Started training...')
-    
-    def ShowTime(self):
-        msg = f'Runtime is {time.time() - self.t0:.0f} sec'
-        print(f'\033[91m\033[1m' + msg + f' > {self.lim} sec limit!\033[0m' if (time.time() - self.t0 - 1) > self.lim else msg)
-
-def showExamples():
-    """ Examples of images """
-    directory_path = DATA_DIR
-    all_files = os.listdir(directory_path)
-    jpg_files = [file for file in all_files if file.endswith('jpg')]
-
-    n, fig = 15, plt.figure(figsize=(30, 10))
-    for i, f in enumerate(np.random.RandomState(0).choice(jpg_files, n)):
-        print(f)
-        ax = plt.subplot(1, n, i + 1)
-        img = keras.preprocessing.image.load_img(directory_path + f)
-        _ = ax.set_title(f'\n{f}\n{img.size[0]}x{img.size[1]}')
-        _ = plt.axis('off')
-        _ = plt.tight_layout(pad = 0)
-        _ = plt.imshow(img)
-        results_file = f"example.png"
-        plt.savefig(results_file)
-
-def getDataFrame(labels, directory_path, files):
-    """ Read *.txt files in ./data/ts/ts/ and save data in Pandas DataFrame """
-    data = []
-    for f in files:
-        if f.endswith(".txt"):
-            txt_filepath = os.path.join(directory_path, f)
-            with open(txt_filepath, 'r') as file:
-                lines = file.readlines()
-                index = 0
-                for line in lines:
-                    fields = line.strip().split()
-                    if len(fields) == 5:
-                        class_number, center_x, center_y, width, height = fields
-                        data.append([int(class_number), float(center_x), 
-                                    float(center_y), float(width), 
-                                    float(height), f, 
-                                    f"{os.path.splitext(os.path.basename(f))[0]}_{index}.jpg", 
-                                    labels['Class labels'].iloc[int(class_number)]])
-                    index += 1
-    return pd.DataFrame(data, columns=['Class Number', 'Center in X', 'Center in Y', 
-                                       'Width', 'Height', "Text Filename", "Image Filename", "Class Label"])
-
-def getTrainDataFrame(labels):
-    """ Get train data """
-    directory_path = DATA_DIR
-    train_files = []
-    with open(f"{ROOT_DIR}/data/train.txt", 'r') as file:
-        lines = file.readlines()
-        for line in lines:
-            fields = line.strip().split()
-            if len(fields) == 1:
-                train_files.append(f"{os.path.splitext(os.path.basename(fields[0]))[0]}.txt")
-    # train_files.sort()
-    tDS = getDataFrame(labels, directory_path, train_files)
-    return tDS
-
-def getTestDataFrame(labels):
-    """ Get test data """
-    directory_path = DATA_DIR
-    test_files = []
-    with open(f"{ROOT_DIR}/data/test.txt", 'r') as file:
-        lines = file.readlines()
-        for line in lines:
-            fields = line.strip().split()
-            if len(fields) == 1:
-                test_files.append(f"{os.path.splitext(os.path.basename(fields[0]))[0]}.txt")
-    # test_files.sort()
-    tDS = getDataFrame(labels, directory_path, test_files)
-    return tDS
-
-def crop_and_store_images(df, image_dir, output_dir):
-    """ Crop and store road signs """
-    # Create the output directory if it doesn't exist
-    os.makedirs(output_dir, exist_ok=True)
-
-    # Loop through the DataFrame
-    for index, row in df.iterrows():
-        image_filename = os.path.join(image_dir, f"{row['Image Filename'][:-6]}.jpg")
-        img = cv.imread(image_filename)
-
-        # Extract bounding box coordinates
-        x_min = int((row['Center in X'] - (row['Width'] / 2)) * img.shape[1])
-        x_max = int((row['Center in X'] + (row['Width'] / 2)) * img.shape[1])
-        y_min = int((row['Center in Y'] - (row['Height'] / 2)) * img.shape[0])
-        y_max = int((row['Center in Y'] + (row['Height'] / 2)) * img.shape[0])
-
-        # Crop the image
-        cropped_img = img[y_min:y_max, x_min:x_max]
-
-        # Define the output file path and save the cropped image
-        class_dir = os.path.join(output_dir, f"{row['Class Number']}")
-        os.makedirs(class_dir, exist_ok=True)
-        
-        output_filename = os.path.join(class_dir, f"{row['Image Filename']}")
-        cv.imwrite(output_filename, cropped_img)
-
-def store_images(df, image_dir, output_dir):
-    """ Store images (into train or test) """
-    if not os.path.exists(output_dir):
-        # Create the output directory if it doesn't exist
-        os.makedirs(output_dir, exist_ok=True)
-
-        # Loop through the DataFrame
-        for index, row in df.iterrows():
-            image_filename = os.path.join(image_dir, f"{row['Image Filename'][:-6]}.jpg")
-            img = cv.imread(image_filename)
-
-            output_filename = os.path.join(output_dir, f"{row['Image Filename']}")
-            cv.imwrite(output_filename, img)
-
-def runSimpleModel(train_df, test_df, debug = False):
-    """ Simple multi-output CNN (images as inputs and multiple numerical target columns) """
+def baselineCNNModel(train_df, test_df, OUTPUT_DIR_TRAIN, OUTPUT_DIR_TEST, debug = False):
+    """
+        Create a baseline CNN model for multi-output prediction. 
+        The input is full images (containing one or more road signs). 
+        The target prediction values are class labels and bounding box information. 
+    """
 
     print("\nrunSimpleModel\n")
     train_dataset = train_df[['Class Number', 'Center in X', 'Center in Y', 'Width', 'Height', 'Image Filename']]
@@ -273,31 +145,3 @@ def runSimpleModel(train_df, test_df, debug = False):
 
     print("\npredictions: ")
     print(prediction_df)
-
-def main(debug):
-    print("\n")
-    tmr = Timer() # Set timer
-    
-    if debug:
-        showExamples()
-    
-    # Get class labels
-    labels = pd.read_csv(f"{ROOT_DIR}/data/classes.names", header = None, names = ["Class labels"])
-    print(labels)
-
-    # train
-    train_df = getTrainDataFrame(labels)
-    # test
-    test_df = getTestDataFrame(labels)
-
-    # separate into train/test subfolders
-    store_images(df = train_df, image_dir = DATA_DIR, output_dir = OUTPUT_DIR_TRAIN)
-    store_images(df = test_df, image_dir = DATA_DIR, output_dir = OUTPUT_DIR_TEST)
-    
-    # Simple CNN model
-    runSimpleModel(train_df, test_df, debug = True)
-
-    tmr.ShowTime() # End timer.
-
-if __name__ == "__main__":
-    main(debug = False)

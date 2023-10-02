@@ -24,8 +24,8 @@ First install conda:
 https://docs.continuum.io/free/anaconda/install/
 
 ## Then setup a virtual environment with conda:
-- `conda create -n kasinets_environment python=3.9 tensorflow opencv`
-- `conda activate kasinets_environment`
+- `conda create -n traffic_signs python=3.9 tensorflow opencv`
+- `conda activate traffic_signs`
 
 ## Finally, install more packages:
 - `conda install -c conda-forge matplotlib`
@@ -35,4 +35,4 @@ https://docs.continuum.io/free/anaconda/install/
 - `conda install -c anaconda seaborn`
 
 ## Inside a virtual environment, run the main code:
-- `python CNN_model.py`
+- `python main.py`
