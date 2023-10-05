@@ -126,10 +126,11 @@ def cropImagesAndStoreRoadSigns(df, image_dir, output_dir):
         cropped_img = img[y_min:y_max, x_min:x_max]
 
         # Define the output file path and save the cropped image
-        class_dir = os.path.join(output_dir, f"{row['Class Number']}")
-        os.makedirs(class_dir, exist_ok=True)
+        # class_dir = os.path.join(output_dir, f"{row['Class Number']}")
+        # os.makedirs(class_dir, exist_ok=True)
+        # output_filename = os.path.join(class_dir, f"{row['Image Filename']}")
         
-        output_filename = os.path.join(class_dir, f"{row['Image Filename']}")
+        output_filename = os.path.join(output_dir, f"{row['Image Filename']}")
         cv.imwrite(output_filename, cropped_img)
 
 
@@ -203,7 +204,7 @@ def writeToExcel(prediction_df, evaluate_info_df, OUTPUT_EXCEL, OUTPUT_DIR_TEST=
         ws2.append(row.tolist())
     # Column width
     for column in ws2.columns:
-        ws2.column_dimensions[column[0].column_letter].width = 20
+        ws2.column_dimensions[column[0].column_letter].width = 24
     
     now = datetime.now()
     formatted_date = now.strftime("%m-%d-%Y-%I-%M-%S-%p")

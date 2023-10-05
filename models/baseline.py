@@ -106,7 +106,7 @@ def baselineCNNModel(train_df, test_df, OUTPUT_DIR_TRAIN, OUTPUT_DIR_TEST, OUTPU
 
     # Train the model
     # TODO: 10
-    epochs = 1
+    epochs = 20
     history = model.fit(train_generator, epochs=epochs, validation_data=validation_generator)
 
     # Evaluate the model (optional)
@@ -170,14 +170,14 @@ def baselineCNNModel(train_df, test_df, OUTPUT_DIR_TRAIN, OUTPUT_DIR_TEST, OUTPU
 
     # Save to excel
     # Save the DataFrame to Excel
+    train_class_counts_dict = {class_name: count for class_name, count in train_dataset['Class Number'].value_counts().items()}
+    test_class_counts_dict = {class_name: count for class_name, count in test_dataset['Class Number'].value_counts().items()}
     evaluate_info_df = pd.DataFrame({'Class Number (Accuracy)': [f"{round(pred_accuracy_class_number, 4) * 100}%"], 
                                      'Center in X (MSE)': [round(pred_mse_center_in_x, 4)], 
                                      'Center in Y (MSE)': [round(pred_mse_center_in_y, 4)], 
                                      'Width (MSE)': [round(pred_mse_width, 4)], 
-                                     'Height (MSE)': [round(pred_mse_height, 4)]})
+                                     'Height (MSE)': [round(pred_mse_height, 4)],
+                                     'Class Counts (Train set)': str(train_class_counts_dict),
+                                     'Class Counts (Test set)': str(test_class_counts_dict)})
     
     writeToExcel(prediction_df, evaluate_info_df, OUTPUT_EXCEL, OUTPUT_DIR_TEST, name = "baseline")
-    
-    # with pd.ExcelWriter('output.xlsx') as writer:
-    #     prediction_df.to_excel(writer, sheet_name='Data')
-    #     evaluate_info_df.to_excel(writer, sheet_name='Evaluate')
