@@ -5,6 +5,9 @@ import tensorflow.keras as keras
 import pandas as pd
 import cv2 as cv
 import time
+from openpyxl import Workbook
+from datetime import datetime
+
 
 class Timer():
     """ Utility class (timer) """
@@ -147,3 +150,61 @@ def copyImagesIntoDir(df, image_dir, output_dir):
 
             output_filename = os.path.join(output_dir, f"{row['Image Filename']}")
             cv.imwrite(output_filename, img)
+
+
+def getImageAndSignDimensions(filename, center_in_x, center_in_y, width, height, image_dir):
+    """
+        Get height, and width of an image.
+        Also, get height, and width of a road sign.
+    """
+    try:
+        image_filename = os.path.join(image_dir, filename)
+        img = cv.imread(image_filename)
+        img_height, img_width, _ = img.shape # Get height and width
+
+        # Extract bounding box coordinates
+        x_min = int((center_in_x - (width / 2)) * img_width)
+        x_max = int((center_in_x + (width / 2)) * img_width)
+        y_min = int((center_in_y - (height / 2)) * img_height)
+        y_max = int((center_in_y + (height / 2)) * img_height)
+
+        # cropped_img = img[y_min:y_max, x_min:x_max]
+        sign_height = y_max - y_min
+        sign_width = x_max - x_min
+
+        return img_height, img_width, sign_height, sign_width
+    except Exception as e:
+        print(f"Error processing image '{filename}': {str(e)}")
+        return None, None, None, None
+
+def writeToExcel(prediction_df, evaluate_info_df, OUTPUT_EXCEL, OUTPUT_DIR_TEST=None, name="predictions"):
+    """ Write results to Excel """
+    wb = Workbook()
+    ws1 = wb.active
+    ws1.title = "Output"    
+
+    # Header
+    ws1.append(prediction_df.columns.tolist())
+    for index, row in prediction_df.iterrows():
+        ws1.append(row.tolist())
+    # Column width
+    for column in ws1.columns:
+        ws1.column_dimensions[column[0].column_letter].width = 20
+    # Apply Hyperlink style
+    if OUTPUT_DIR_TEST:
+        column_letter = "K"
+        for cell in ws1[column_letter][1:]:
+            ws1[f'{column_letter}{cell.row}'].style = "Hyperlink"
+    
+    ws2 = wb.create_sheet("Evaluate")
+    # Header
+    ws2.append(evaluate_info_df.columns.tolist())
+    for index, row in evaluate_info_df.iterrows():
+        ws2.append(row.tolist())
+    # Column width
+    for column in ws2.columns:
+        ws2.column_dimensions[column[0].column_letter].width = 20
+    
+    now = datetime.now()
+    formatted_date = now.strftime("%m-%d-%Y-%I-%M-%S-%p")
+    wb.save(f"{OUTPUT_EXCEL}{name}_{formatted_date}.xlsx")

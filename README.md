@@ -33,6 +33,7 @@ https://docs.continuum.io/free/anaconda/install/
 - `conda install -c anaconda numpy`
 - `conda install -c anaconda scikit-learn`
 - `conda install -c anaconda seaborn`
+- `conda install openpyxl`
 
 ## Inside a virtual environment, run the main code:
 - `python main.py`
