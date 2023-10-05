@@ -78,7 +78,7 @@ def croppedOnlyCNNModel(train_df, test_df, OUTPUT_DIR_TRAIN, OUTPUT_DIR_TEST, OU
     
     # Train the model
     # TODO: 10
-    epochs = 1
+    epochs = 20
     history = model.fit(train_generator, epochs=epochs, validation_data=validation_generator)
 
     # Evaluate the model (optional)
