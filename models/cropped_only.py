@@ -105,6 +105,7 @@ def croppedOnlyCNNModel(train_df, test_df, OUTPUT_DIR_TRAIN, OUTPUT_DIR_TEST, OU
     # Create a DataFrame
     prediction_df = pd.DataFrame({
         "(Predicted) Class Number" : class_number_indices,
+        "(Predicted) Class Prob.": np.array([str(arr) for arr in np.round(class_number_predictions, 3)]),
         "(Actual) Class Number" : test_dataset["Class Number"],
         'Image Filename': test_dataset['Image Filename'],
         'Image Height': test_dataset['Image Height'],
