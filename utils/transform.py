@@ -140,7 +140,7 @@ def testDaubechiesWavelet(filepath):
     IDaub[:row // 2, :col // 2] = IDaub2
 
     plt.figure()
-    plt.imshow(IDaub, cmap='gray', vmin=0, vmax=255)
+    plt.imshow(np.abs(IDaub), cmap='gray', vmin=0, vmax=255)
     plt.title("Daubechies Wavelet")
     
     # Show figures
@@ -149,8 +149,8 @@ def testDaubechiesWavelet(filepath):
 
 def main(debug):
     print("\n")
-    testTwoDHaar(EXAMPLE_IMAGE)
-    # testDaubechiesWavelet(EXAMPLE_IMAGE)
+    # testTwoDHaar(EXAMPLE_IMAGE)
+    testDaubechiesWavelet(EXAMPLE_IMAGE)
 
 
 if __name__ == "__main__":
