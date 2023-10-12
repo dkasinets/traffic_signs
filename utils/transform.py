@@ -7,7 +7,6 @@ EXAMPLE_IMAGE = f"{ROOT_DIR}/utils/squareX.bmp"
 
 
 def TwoDHaarTransform(Im, L):
-    # This code is for educational and research purposes of comparisons.
     # This program was written to implement the Haar Wavelet on an image for 
     # the intention of demonstrating the Haar wavelet.  
     #
@@ -74,9 +73,84 @@ def testTwoDHaar(filepath):
     plt.show()
 
 
+def DaubechiesWaveletTransform(size):
+    # This code calculates the Daubechies-4 wavelet coefficients.
+    
+    h = [(1 + np.sqrt(3)) / 4, (3 + np.sqrt(3)) / 4, (3 - np.sqrt(3)) / 4, (1 - np.sqrt(3)) / 4]
+    g = [-h[3], h[2], -h[1], h[0]]
+    
+    Daub4 = np.zeros((size, size))
+    j = 0
+    
+    for i in range(size // 2):
+        Daub4[i, j] = h[0]
+        Daub4[i, (j + 1) % size] = h[1]
+        Daub4[i, (j + 2) % size] = h[2]
+        Daub4[i, (j + 3) % size] = h[3]
+        
+        Daub4[i + size // 2, j] = g[0]
+        Daub4[i + size // 2, (j + 1) % size] = g[1]
+        Daub4[i + size // 2, (j + 2) % size] = g[2]
+        Daub4[i + size // 2, (j + 3) % size] = g[3]
+        
+        j = (j + 2) % size
+    
+    return Daub4
+
+
+def testDaubechiesWavelet(filepath):
+    # Testing Daubechies Wavelet Transform (using squareX.bmp)
+    
+    # Load and display the original image (replace 'squareX.bmp' with your image)
+    # Load the image
+    Im = plt.imread(filepath)
+    plt.figure()
+    plt.imshow(Im, cmap = 'gray', vmin = 0, vmax = 255)
+    plt.title("squareX.bmp")
+
+    row, col = Im.shape
+    IN = Im.astype(float)
+
+    Daub4 = DaubechiesWaveletTransform(row)
+    IDTemp = np.zeros((row, col))
+
+    for i in range(row):
+        IDTemp[i, :] = (1 / np.sqrt(2)) * np.dot(Daub4, IN[i, :])
+
+    IDaub = np.zeros((row, col))
+
+    for j in range(col):
+        IDaub[:, j] = (1 / np.sqrt(2)) * np.dot(Daub4, IDTemp[:, j])
+    
+    # More
+    # Extract the top-left quarter of the image and apply the Daubechies4 transform
+    Daub4 = DaubechiesWaveletTransform(row // 2)
+    IN = IDaub[:row // 2, :col // 2]
+    IDTemp = np.zeros((row // 2, col // 2))
+
+    for i in range(row // 2):
+        IDTemp[i, :] = (1 / np.sqrt(2)) * np.dot(Daub4, IN[i, :])
+    
+    IDaub2 = np.zeros((row // 2, col // 2))
+
+    for j in range(col // 2):
+        IDaub2[:, j] = (1 / np.sqrt(2)) * np.dot(Daub4, IDTemp[:, j])
+    
+    # Replace the top-left quarter of the original IDaub with the transformed quarter
+    IDaub[:row // 2, :col // 2] = IDaub2
+
+    plt.figure()
+    plt.imshow(IDaub, cmap='gray', vmin=0, vmax=255)
+    plt.title("Daubechies Wavelet")
+    
+    # Show figures
+    plt.show()
+
+
 def main(debug):
     print("\n")
     testTwoDHaar(EXAMPLE_IMAGE)
+    # testDaubechiesWavelet(EXAMPLE_IMAGE)
 
 
 if __name__ == "__main__":
