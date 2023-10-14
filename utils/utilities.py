@@ -100,6 +100,23 @@ def getTestData(labels, ROOT_DIR, DATA_DIR):
     return tDS
 
 
+def copyImagesOfClass(class_val, df, image_dir, output_dir):
+    """
+        Separate (and copy) images of a specific class into a folder. 
+        For example: 0 - stands for Prohibitory class.
+    """
+    # Create the output directory if it doesn't exist
+    os.makedirs(output_dir, exist_ok=True)
+    
+    # Loop through the DataFrame
+    for index, row in df.iterrows():
+        if row["Class Number"] == class_val:
+            image_filename = os.path.join(image_dir, f"{row['Image Filename'][:-6]}.jpg")
+            img = cv.imread(image_filename)
+            output_filename = os.path.join(output_dir, f"{row['Image Filename']}")
+            cv.imwrite(output_filename, img)
+
+
 def cropImagesAndStoreRoadSigns(df, image_dir, output_dir):
     """
         Using a dataset of images and 
