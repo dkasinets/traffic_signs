@@ -1,0 +1,44 @@
+Path,ClassId,classLabels,ShapeId,ColorId,SignId,Desc
+Meta/27.png,27,1,0,0,1.32,pedestrian crossing
+Meta/0.png,0,0,1,0,3.29,speed limit 20
+Meta/1.png,1,0,1,0,3.29,speed limit 30
+Meta/10.png,10,0,1,0,3.27,no overtaking (trucks)
+Meta/11.png,11,1,0,0,1.22,priority at next intersection
+Meta/12.png,12,3,2,2,2.3,priority road
+Meta/13.png,13,3,4,0,2.1,give way
+Meta/14.png,14,3,3,0,2.2,stop
+Meta/15.png,15,0,1,0,3.1,no traffic both ways
+Meta/16.png,16,0,1,0,3.3,no trucks
+Meta/17.png,17,3,1,0,3.21,no entry
+Meta/18.png,18,1,0,0,1.39,danger
+Meta/19.png,19,1,0,0,1.2,bend left
+Meta/2.png,2,0,1,0,3.29,speed limit 50
+Meta/20.png,20,1,0,0,1.1,bend right
+Meta/21.png,21,1,0,0,1.3.2,bend
+Meta/22.png,22,1,0,0,1.1,uneven road
+Meta/23.png,23,1,0,0,1.13,slippery road
+Meta/24.png,24,1,0,0,1.5.2,road narrows
+Meta/25.png,25,1,0,0,1.37,construction
+Meta/26.png,26,1,0,0,1.24,traffic signal
+Meta/28.png,28,1,0,0,1.33,school crossing
+Meta/29.png,29,1,0,0,1.34,cycles crossing
+Meta/3.png,3,0,1,0,3.29,speed limit 60
+Meta/30.png,30,1,0,0,None,snow
+Meta/31.png,31,1,0,0,1.36,animals
+Meta/32.png,32,3,1,3,3.42,restriction ends
+Meta/33.png,33,2,1,1,4.2,go right
+Meta/34.png,34,2,1,1,4.3,go left
+Meta/35.png,35,2,1,1,4.1,go straight
+Meta/36.png,36,2,1,1,4.4,go right or straight
+Meta/37.png,37,2,1,1,4.5,go left or straight
+Meta/38.png,38,2,1,1,4.7,keep right
+Meta/39.png,39,2,1,1,4.8,keep left
+Meta/4.png,4,0,1,0,3.29,speed limit 70
+Meta/40.png,40,2,1,1,4.1,roundabout
+Meta/41.png,41,3,1,3,3.26,restriction ends (overtaking)
+Meta/42.png,42,3,1,3,3.28,restriction ends (overtaking (trucks))
+Meta/5.png,5,0,1,0,3.29,speed limit 80
+Meta/6.png,6,3,1,3,3.3,restriction ends 80
+Meta/7.png,7,0,1,0,3.29,speed limit 100
+Meta/8.png,8,0,1,0,3.29,speed limit 120
+Meta/9.png,9,0,1,0,3.25,no overtaking

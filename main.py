@@ -16,6 +16,7 @@ from utils.utilities import showDataSamples, copyImagesIntoDir, getImageAndSignD
 from utils.utilities import getTestData, getTrainData
 from models.baseline import baselineCNNModel
 from models.cropped_only import croppedOnlyCNNModel
+from utils.utilities import getGroundTruths
 
 # Global Variables
 ROOT_DIR = "/Users/Kasinets/Dropbox/Mac/Desktop/SP22_JHU/Rodriguez/traffic_signs"
@@ -84,7 +85,9 @@ def main(debug):
         showDataSamples(DATA_DIR)
     
     # runBaseline()
-    runCroppedOnly()
+    # runCroppedOnly()
+
+    getGroundTruths(root_dir = ROOT_DIR)
 
     tmr.ShowTime() # End timer.
 

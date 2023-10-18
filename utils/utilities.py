@@ -107,15 +107,23 @@ def copyImagesOfClass(class_val, df, image_dir, output_dir):
     """
     # Create the output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
-    
+
     # Loop through the DataFrame
     for index, row in df.iterrows():
         if row["Class Number"] == class_val:
             image_filename = os.path.join(image_dir, f"{row['Image Filename'][:-6]}.jpg")
             img = cv.imread(image_filename)
+
             output_filename = os.path.join(output_dir, f"{row['Image Filename']}")
             cv.imwrite(output_filename, img)
 
+
+def getGroundTruths(root_dir):
+    """ Create a Ground truths .txt file """
+    print("Get class labels...\n")
+    labels = pd.read_csv(f"{root_dir}/data/classes.names", header = None, names = ["Class labels"])
+    print(labels)
+    
 
 def cropImagesAndStoreRoadSigns(df, image_dir, output_dir):
     """
