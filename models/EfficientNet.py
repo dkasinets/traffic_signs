@@ -110,6 +110,40 @@ def runEfficientNetB0(tDS, image_size):
     return pm1
 
 
+def runEfficientNetB0_Original(tDS, vDS, image_size):
+    """ EfficientNetB0 """
+    # Below we replace the top layer of the pretrained CNN EfficientNetB0 and train the new layer only (all remaining pretrained layers are frozen).
+    tf.random.set_seed(0) # seed
+    Init = keras.initializers.RandomNormal(seed = 0)
+
+    pm = efficientnet.EfficientNetB0(weights="imagenet", include_top = False, input_shape = (image_size[0], image_size[1], 3)) # pretrained model
+    avg = GlobalAveragePooling2D(data_format = 'channels_last')(pm.output) # collapse spatial dimensions
+    output = Dense(6, activation = "softmax", kernel_initializer = Init)(avg)
+
+    pm1 = keras.Model(inputs = pm.input, outputs = output)
+    for l in pm.layers: l.trainable = False # freeze layers from training
+
+    lrs = keras.optimizers.schedules.ExponentialDecay(initial_learning_rate = .2, decay_steps = 10000, decay_rate = 0.01)
+    opt = keras.optimizers.SGD(learning_rate = lrs, momentum = 0.9)
+
+    pm1.compile(loss = "categorical_crossentropy", optimizer = opt, metrics = ["accuracy"])
+    hist = pm1.fit(tDS, epochs = 2, validation_data = vDS) 
+
+    # -------------------------- 
+    # Below we post-train all pre-trained layers after unlocking them.
+    for l in pm.layers: l.trainable = True # allow training
+
+    lrs = keras.optimizers.schedules.ExponentialDecay(initial_learning_rate = .01, decay_steps = 10000, decay_rate = 0.001)
+    opt = keras.optimizers.SGD(learning_rate = lrs, momentum = 0.9)
+
+    pm1.compile(loss="categorical_crossentropy", optimizer = opt, metrics = ['accuracy'])
+    hist = pm1.fit(tDS, epochs = 20, validation_data = vDS)
+    
+    print("\n")
+
+    return pm1
+
+
 def runCustomModel(train_df, test_df, OUTPUT_DIR_TRAIN, OUTPUT_DIR_TEST, model_name = "EfficientNetB0", debug = False):
     """ Classify dollar bills """
 
