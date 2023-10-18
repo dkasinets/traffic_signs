@@ -118,12 +118,70 @@ def copyImagesOfClass(class_val, df, image_dir, output_dir):
             cv.imwrite(output_filename, img)
 
 
-def getGroundTruths(root_dir):
-    """ Create a Ground truths .txt file """
-    print("Get class labels...\n")
+def getLabeledData(root_dir, data_dir, output_dir_train_cropped, output_dir_test_cropped):
+    """ Get train & test sets containing Labeled, Within-Class data """
+    print("Get Class Labels...\n")
     labels = pd.read_csv(f"{root_dir}/data/classes.names", header = None, names = ["Class labels"])
     print(labels)
+
+    print("Get Signs Metadata...\n")
+    signs_metadata = pd.read_csv(f"{root_dir}/data/labeled/GTSRB_Meta.csv")
+    print(signs_metadata)
+
+    print("Merge Class Labels Dataframe, and Signs Metadata Dataframe ...\n")
+    merged_df = signs_metadata.merge(labels, left_on = 'ClassLabels', right_index = True, how = 'left')
+    print(merged_df)
+
+    print("Get ground truths (labeled data)...\n")
+    ground_truths_labeled = []
+    ImgNoIndexMap = {}
+    with open(f"{root_dir}/data/labeled/GTSDB_gt.txt", 'r') as file:
+        lines = file.readlines()
+        for line in lines:
+            fields = line.strip().split(";")
+            if len(fields) == 6:
+                ImgNo, leftCol, topRow, rightCol, bottomRow, ClassID = fields
+                # Get index for repeating ImgNo (filepath)
+                if ImgNo in ImgNoIndexMap:
+                    ImgNoIndexMap[ImgNo] += 1
+                    index = ImgNoIndexMap[ImgNo]
+                else:
+                    index = 0
+                    ImgNoIndexMap[ImgNo] = index
+                # append
+                ground_truths_labeled.append([f"{os.path.splitext(os.path.basename(ImgNo))[0]}_{index}.jpg", 
+                                              int(leftCol), int(topRow), int(rightCol), int(bottomRow), int(ClassID)])
+    ground_truths_labeled_df = pd.DataFrame(ground_truths_labeled, columns=['ImgNo', 'leftCol', 'topRow', 
+                                                                            'rightCol', 'bottomRow', "ClassID"])
+    print(ground_truths_labeled_df)
+
+    print("Merge with Ground Truths (labeled data) Dataframe ...\n")
+    all_data = ground_truths_labeled_df.merge(merged_df, left_on = 'ClassID', right_on = 'ClassId', how = 'left')
+    # Drop the duplicate 'ClassId' column
+    all_data = all_data.drop(columns = ['ClassId'])
+    print(all_data)
+
+    # NOTE: Skip cropping. We already have cropped files. 
+
+    print("Get train & test...\n")
+    train_df = getTrainData(labels, root_dir, data_dir)
+    test_df = getTestData(labels, root_dir, data_dir)
+
+    print("Append data to train & test sets...\n")
+    train_df_appended = train_df.merge(all_data, left_on = 'Image Filename', right_on = 'ImgNo', how = 'left')
+    # Drop the duplicate 'ImgNo', 'Class labels' column
+    train_df_appended = train_df_appended.drop(columns = ['ImgNo', 'Class labels', 'ClassLabels'])
+
+    test_df_appended = test_df.merge(all_data, left_on = 'Image Filename', right_on = 'ImgNo', how = 'left')
+    # Drop the duplicate 'ImgNo', 'Class labels' column
+    test_df_appended = test_df_appended.drop(columns = ['ImgNo', 'Class labels', 'ClassLabels'])
+
+    print("Calculate image dimensions...\n")
+    train_df_appended[['Image Height', 'Image Width', 'Sign Height', 'Sign Width']] = train_df_appended.apply(lambda row: pd.Series(getImageAndSignDimensions(row['Image Filename'], row['Center in X'], row['Center in Y'], row['Width'], row['Height'], output_dir_train_cropped)), axis = 1)
+    test_df_appended[['Image Height', 'Image Width', 'Sign Height', 'Sign Width']] = test_df_appended.apply(lambda row: pd.Series(getImageAndSignDimensions(row['Image Filename'], row['Center in X'], row['Center in Y'], row['Width'], row['Height'], output_dir_test_cropped)), axis = 1)
     
+    return train_df_appended, test_df_appended
+
 
 def cropImagesAndStoreRoadSigns(df, image_dir, output_dir):
     """

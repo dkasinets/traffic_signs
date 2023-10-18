@@ -1,4 +1,4 @@
-Path,ClassId,classLabels,ShapeId,ColorId,SignId,Desc
+MetaPath,ClassId,ClassLabels,ShapeId,ColorId,SignId,ClassIdDesc
 Meta/27.png,27,1,0,0,1.32,pedestrian crossing
 Meta/0.png,0,0,1,0,3.29,speed limit 20
 Meta/1.png,1,0,1,0,3.29,speed limit 30

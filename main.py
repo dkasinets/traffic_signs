@@ -15,8 +15,8 @@ from utils.utilities import Timer
 from utils.utilities import showDataSamples, copyImagesIntoDir, getImageAndSignDimensions, cropImagesAndStoreRoadSigns
 from utils.utilities import getTestData, getTrainData
 from models.baseline import baselineCNNModel
-from models.cropped_only import croppedOnlyCNNModel
-from utils.utilities import getGroundTruths
+from models.cropped_only import croppedOnlyCNNModel, croppedOnlyWithinClassCNNModel
+from utils.utilities import getLabeledData
 
 # Global Variables
 ROOT_DIR = "/Users/Kasinets/Dropbox/Mac/Desktop/SP22_JHU/Rodriguez/traffic_signs"
@@ -33,7 +33,6 @@ OUTPUT_EXCEL = f"{ROOT_DIR}/output/excel/"
 
 def runBaseline():
     """ Baseline Multi-Output CNN Model """
-
     print("Get class labels...\n")
     labels = pd.read_csv(f"{ROOT_DIR}/data/classes.names", header = None, names = ["Class labels"])
     print(labels)
@@ -77,6 +76,16 @@ def runCroppedOnly():
     croppedOnlyCNNModel(train_df, test_df, OUTPUT_DIR_TRAIN_CROPPED, OUTPUT_DIR_TEST_CROPPED, OUTPUT_EXCEL, debug = True)
 
 
+def runCroppedOnlyWithinClass():
+    """ Within Class (prohibitory) Prediction CNN Model using Cropped images """
+    train_df, test_df = getLabeledData(root_dir = ROOT_DIR, data_dir = DATA_DIR, 
+                                       output_dir_train_cropped = OUTPUT_DIR_TRAIN_CROPPED, 
+                                       output_dir_test_cropped = OUTPUT_DIR_TEST_CROPPED)
+    
+    print("Run CNN model (using Cropped images, Labeled Signs)...\n")
+    croppedOnlyWithinClassCNNModel(train_df, test_df, OUTPUT_DIR_TRAIN_CROPPED, OUTPUT_DIR_TEST_CROPPED, OUTPUT_EXCEL, debug = True)
+
+
 def main(debug):
     print("\n")
     tmr = Timer() # Set timer
@@ -86,8 +95,7 @@ def main(debug):
     
     # runBaseline()
     # runCroppedOnly()
-
-    getGroundTruths(root_dir = ROOT_DIR)
+    runCroppedOnlyWithinClass()
 
     tmr.ShowTime() # End timer.
 
