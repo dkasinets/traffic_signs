@@ -118,7 +118,7 @@ def copyImagesOfClass(class_val, df, image_dir, output_dir):
             cv.imwrite(output_filename, img)
 
 
-def getLabeledData(root_dir, data_dir, output_dir_train_cropped, output_dir_test_cropped):
+def getLabeledData(root_dir, data_dir):
     """ Get train & test sets containing Labeled, Within-Class data """
     print("Get Class Labels...\n")
     labels = pd.read_csv(f"{root_dir}/data/classes.names", header = None, names = ["Class labels"])
@@ -176,10 +176,6 @@ def getLabeledData(root_dir, data_dir, output_dir_train_cropped, output_dir_test
     # Drop the duplicate 'ImgNo', 'Class labels' column
     test_df_appended = test_df_appended.drop(columns = ['ImgNo', 'Class labels', 'ClassLabels'])
 
-    print("Calculate image dimensions...\n")
-    train_df_appended[['Image Height', 'Image Width', 'Sign Height', 'Sign Width']] = train_df_appended.apply(lambda row: pd.Series(getImageAndSignDimensions(row['Image Filename'], row['Center in X'], row['Center in Y'], row['Width'], row['Height'], output_dir_train_cropped)), axis = 1)
-    test_df_appended[['Image Height', 'Image Width', 'Sign Height', 'Sign Width']] = test_df_appended.apply(lambda row: pd.Series(getImageAndSignDimensions(row['Image Filename'], row['Center in X'], row['Center in Y'], row['Width'], row['Height'], output_dir_test_cropped)), axis = 1)
-    
     return train_df_appended, test_df_appended
 
 
