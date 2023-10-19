@@ -257,6 +257,7 @@ def getImageAndSignDimensions(filename, center_in_x, center_in_y, width, height,
         print(f"Error processing image '{filename}': {str(e)}")
         return None, None, None, None
 
+
 def writeToExcel(prediction_df, evaluate_info_df, OUTPUT_EXCEL, OUTPUT_DIR_TEST=None, name="predictions"):
     """ Write results to Excel """
     wb = Workbook()
@@ -288,3 +289,10 @@ def writeToExcel(prediction_df, evaluate_info_df, OUTPUT_EXCEL, OUTPUT_DIR_TEST=
     now = datetime.now()
     formatted_date = now.strftime("%m-%d-%Y-%I-%M-%S-%p")
     wb.save(f"{OUTPUT_EXCEL}{name}_{formatted_date}.xlsx")
+
+
+def exportTrainTest(train_df, test_df, ROOT_DIR):
+    """ Export train & test as csv files. """
+    selected_columns = ['Class Number', 'Image Filename', 'Class Label', 'ClassID', 'ClassIdDesc', 'Image Height', 'Image Width']
+    train_df[selected_columns].to_csv(f"{ROOT_DIR}/data/labeled/train.csv", index=False)  # Set index=False to exclude the index column
+    test_df[selected_columns].to_csv(f"{ROOT_DIR}/data/labeled/test.csv", index=False)  # Set index=False to exclude the index column

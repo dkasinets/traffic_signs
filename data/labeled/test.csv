@@ -1,0 +1,180 @@
+Class Number,Image Filename,Class Label,ClassID,ClassIdDesc,Image Height,Image Width
+0,00686_0.jpg,prohibitory,5,speed limit 80,36,35
+1,00703_0.jpg,danger,28,school crossing,52,58
+0,00703_1.jpg,prohibitory,1,speed limit 30,41,41
+1,00189_0.jpg,danger,18,danger,55,64
+1,00100_0.jpg,danger,30,snow,34,39
+1,00100_1.jpg,danger,30,snow,35,39
+1,00874_0.jpg,danger,31,animals,64,65
+2,00116_0.jpg,mandatory,35,go straight,58,58
+3,00116_1.jpg,other,17,no entry,28,16
+2,00644_0.jpg,mandatory,38,keep right,57,54
+0,00514_0.jpg,prohibitory,10,no overtaking (trucks),37,37
+0,00514_1.jpg,prohibitory,10,no overtaking (trucks),39,38
+1,00075_0.jpg,danger,23,slippery road,59,67
+0,00075_1.jpg,prohibitory,4,speed limit 70,47,48
+0,00204_0.jpg,prohibitory,1,speed limit 30,91,88
+2,00204_1.jpg,mandatory,34,go left,57,53
+0,00216_0.jpg,prohibitory,5,speed limit 80,25,25
+0,00216_1.jpg,prohibitory,5,speed limit 80,26,24
+0,00729_0.jpg,prohibitory,3,speed limit 60,35,34
+0,00552_0.jpg,prohibitory,8,speed limit 120,17,17
+0,00552_1.jpg,prohibitory,10,no overtaking (trucks),16,16
+0,00552_2.jpg,prohibitory,8,speed limit 120,18,17
+0,00552_3.jpg,prohibitory,10,no overtaking (trucks),16,15
+0,00513_0.jpg,prohibitory,7,speed limit 100,55,55
+2,00795_0.jpg,mandatory,38,keep right,51,48
+0,00740_0.jpg,prohibitory,5,speed limit 80,51,50
+0,00740_1.jpg,prohibitory,5,speed limit 80,45,45
+3,00740_2.jpg,other,13,give way,23,23
+0,00280_0.jpg,prohibitory,2,speed limit 50,30,29
+3,00280_1.jpg,other,12,priority road,51,51
+2,00161_0.jpg,mandatory,34,go left,17,18
+1,00205_0.jpg,danger,25,construction,117,124
+0,00470_0.jpg,prohibitory,1,speed limit 30,25,24
+3,00470_1.jpg,other,13,give way,35,34
+3,00470_2.jpg,other,12,priority road,113,113
+2,00463_0.jpg,mandatory,38,keep right,32,30
+0,00085_0.jpg,prohibitory,1,speed limit 30,28,28
+0,00851_0.jpg,prohibitory,1,speed limit 30,55,55
+0,00829_0.jpg,prohibitory,1,speed limit 30,23,23
+3,00829_1.jpg,other,12,priority road,121,110
+0,00775_0.jpg,prohibitory,1,speed limit 30,47,47
+0,00626_0.jpg,prohibitory,2,speed limit 50,38,38
+0,00626_1.jpg,prohibitory,9,no overtaking,36,36
+3,00051_0.jpg,other,12,priority road,70,69
+2,00808_0.jpg,mandatory,38,keep right,43,43
+1,00808_1.jpg,danger,28,school crossing,62,71
+0,00773_0.jpg,prohibitory,1,speed limit 30,24,24
+3,00773_1.jpg,other,12,priority road,46,46
+2,00190_0.jpg,mandatory,35,go straight,21,19
+3,00087_0.jpg,other,6,restriction ends 80,35,34
+3,00087_1.jpg,other,6,restriction ends 80,34,35
+1,00780_0.jpg,danger,25,construction,90,101
+0,00780_1.jpg,prohibitory,3,speed limit 60,64,62
+1,00780_2.jpg,danger,25,construction,89,95
+0,00780_3.jpg,prohibitory,3,speed limit 60,65,63
+1,00557_0.jpg,danger,23,slippery road,40,44
+3,00557_1.jpg,other,13,give way,48,48
+3,00879_0.jpg,other,32,restriction ends,40,40
+3,00879_1.jpg,other,32,restriction ends,42,41
+2,00491_0.jpg,mandatory,38,keep right,69,58
+0,00023_0.jpg,prohibitory,1,speed limit 30,79,77
+1,00023_1.jpg,danger,23,slippery road,94,90
+1,00023_2.jpg,danger,23,slippery road,58,61
+3,00402_0.jpg,other,42,restriction ends (overtaking (trucks)),38,38
+0,00517_0.jpg,prohibitory,10,no overtaking (trucks),74,74
+1,00651_0.jpg,danger,25,construction,66,74
+0,00651_1.jpg,prohibitory,1,speed limit 30,51,52
+3,00646_0.jpg,other,13,give way,28,31
+3,00646_1.jpg,other,13,give way,25,30
+1,00423_0.jpg,danger,25,construction,78,86
+1,00423_1.jpg,danger,25,construction,89,94
+2,00002_0.jpg,mandatory,39,keep left,116,113
+3,00344_0.jpg,other,12,priority road,81,80
+0,00228_0.jpg,prohibitory,1,speed limit 30,61,61
+0,00456_0.jpg,prohibitory,3,speed limit 60,57,54
+3,00762_0.jpg,other,13,give way,60,67
+3,00762_1.jpg,other,13,give way,59,64
+0,00185_0.jpg,prohibitory,2,speed limit 50,107,109
+1,00227_0.jpg,danger,18,danger,70,78
+3,00446_0.jpg,other,17,no entry,37,40
+3,00446_1.jpg,other,17,no entry,33,35
+2,00446_2.jpg,mandatory,38,keep right,33,33
+3,00025_0.jpg,other,13,give way,37,41
+2,00025_1.jpg,mandatory,40,roundabout,34,33
+0,00134_0.jpg,prohibitory,1,speed limit 30,66,66
+0,00494_0.jpg,prohibitory,1,speed limit 30,95,98
+3,00695_0.jpg,other,12,priority road,31,30
+0,00141_0.jpg,prohibitory,2,speed limit 50,37,37
+1,00418_0.jpg,danger,22,uneven road,28,34
+0,00418_1.jpg,prohibitory,8,speed limit 120,22,23
+1,00183_0.jpg,danger,19,bend left,36,39
+3,00471_0.jpg,other,12,priority road,28,28
+1,00507_0.jpg,danger,11,priority at next intersection,51,56
+2,00507_1.jpg,mandatory,38,keep right,18,16
+3,00642_0.jpg,other,12,priority road,74,74
+2,00642_1.jpg,mandatory,38,keep right,22,24
+1,00864_0.jpg,danger,22,uneven road,19,21
+1,00802_0.jpg,danger,28,school crossing,88,101
+0,00802_1.jpg,prohibitory,1,speed limit 30,69,73
+1,00004_0.jpg,danger,21,bend,67,69
+0,00004_1.jpg,prohibitory,2,speed limit 50,52,49
+0,00397_0.jpg,prohibitory,10,no overtaking (trucks),34,34
+0,00397_1.jpg,prohibitory,4,speed limit 70,35,35
+0,00876_0.jpg,prohibitory,3,speed limit 60,25,25
+0,00876_1.jpg,prohibitory,3,speed limit 60,20,19
+3,00310_0.jpg,other,42,restriction ends (overtaking (trucks)),33,33
+3,00310_1.jpg,other,42,restriction ends (overtaking (trucks)),36,38
+0,00473_0.jpg,prohibitory,10,no overtaking (trucks),33,33
+0,00473_1.jpg,prohibitory,10,no overtaking (trucks),33,31
+0,00704_0.jpg,prohibitory,2,speed limit 50,27,26
+3,00702_0.jpg,other,12,priority road,22,18
+3,00502_0.jpg,other,17,no entry,28,28
+3,00502_1.jpg,other,17,no entry,26,27
+2,00502_2.jpg,mandatory,38,keep right,34,34
+1,00852_0.jpg,danger,29,cycles crossing,50,52
+2,00761_0.jpg,mandatory,38,keep right,56,61
+0,00390_0.jpg,prohibitory,8,speed limit 120,49,48
+0,00390_1.jpg,prohibitory,8,speed limit 120,48,46
+0,00710_0.jpg,prohibitory,2,speed limit 50,83,80
+0,00274_0.jpg,prohibitory,0,speed limit 20,35,35
+3,00341_0.jpg,other,13,give way,68,74
+2,00155_0.jpg,mandatory,38,keep right,44,43
+3,00320_0.jpg,other,32,restriction ends,27,27
+3,00320_1.jpg,other,32,restriction ends,32,30
+0,00483_0.jpg,prohibitory,7,speed limit 100,53,53
+0,00483_1.jpg,prohibitory,7,speed limit 100,52,51
+1,00015_0.jpg,danger,25,construction,36,38
+1,00820_0.jpg,danger,11,priority at next intersection,101,112
+3,00388_0.jpg,other,13,give way,64,72
+0,00142_0.jpg,prohibitory,2,speed limit 50,18,18
+1,00426_0.jpg,danger,25,construction,111,120
+2,00685_0.jpg,mandatory,38,keep right,44,44
+1,00078_0.jpg,danger,29,cycles crossing,99,108
+3,00078_1.jpg,other,13,give way,22,21
+0,00260_0.jpg,prohibitory,0,speed limit 20,64,64
+1,00256_0.jpg,danger,18,danger,112,126
+1,00104_0.jpg,danger,25,construction,36,41
+3,00104_1.jpg,other,13,give way,32,35
+2,00647_0.jpg,mandatory,38,keep right,22,22
+1,00306_0.jpg,danger,20,bend right,35,37
+1,00306_1.jpg,danger,20,bend right,34,37
+0,00683_0.jpg,prohibitory,10,no overtaking (trucks),22,22
+0,00683_1.jpg,prohibitory,10,no overtaking (trucks),25,23
+0,00551_0.jpg,prohibitory,16,no trucks,28,28
+0,00474_0.jpg,prohibitory,7,speed limit 100,32,32
+0,00474_1.jpg,prohibitory,7,speed limit 100,31,31
+3,00307_0.jpg,other,17,no entry,32,32
+3,00307_1.jpg,other,17,no entry,33,31
+1,00307_2.jpg,danger,22,uneven road,40,43
+2,00307_3.jpg,mandatory,38,keep right,33,33
+1,00671_0.jpg,danger,26,traffic signal,46,54
+0,00671_1.jpg,prohibitory,2,speed limit 50,37,36
+1,00258_0.jpg,danger,11,priority at next intersection,33,32
+1,00258_1.jpg,danger,11,priority at next intersection,33,35
+2,00082_0.jpg,mandatory,38,keep right,88,84
+0,00182_0.jpg,prohibitory,2,speed limit 50,28,29
+3,00182_1.jpg,other,41,restriction ends (overtaking),28,28
+3,00461_0.jpg,other,12,priority road,67,71
+2,00885_0.jpg,mandatory,38,keep right,79,79
+3,00885_1.jpg,other,17,no entry,66,66
+0,00384_0.jpg,prohibitory,8,speed limit 120,64,64
+0,00384_1.jpg,prohibitory,10,no overtaking (trucks),65,65
+0,00825_0.jpg,prohibitory,1,speed limit 30,26,25
+0,00350_0.jpg,prohibitory,10,no overtaking (trucks),33,33
+0,00350_1.jpg,prohibitory,10,no overtaking (trucks),31,33
+0,00367_0.jpg,prohibitory,8,speed limit 120,40,40
+0,00367_1.jpg,prohibitory,10,no overtaking (trucks),41,43
+0,00367_2.jpg,prohibitory,8,speed limit 120,42,44
+0,00367_3.jpg,prohibitory,10,no overtaking (trucks),40,41
+3,00236_0.jpg,other,14,stop,127,118
+3,00438_0.jpg,other,41,restriction ends (overtaking),21,21
+3,00438_1.jpg,other,41,restriction ends (overtaking),21,21
+3,00352_0.jpg,other,6,restriction ends 80,27,26
+3,00352_1.jpg,other,6,restriction ends 80,27,28
+0,00717_0.jpg,prohibitory,4,speed limit 70,25,24
+3,00842_0.jpg,other,14,stop,61,61
+3,00672_0.jpg,other,13,give way,51,58
+3,00672_1.jpg,other,13,give way,63,71
+2,00233_0.jpg,mandatory,38,keep right,33,33

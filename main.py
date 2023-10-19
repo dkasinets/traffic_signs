@@ -16,7 +16,7 @@ from utils.utilities import showDataSamples, copyImagesIntoDir, getImageAndSignD
 from utils.utilities import getTestData, getTrainData
 from models.baseline import baselineCNNModel
 from models.cropped_only import croppedOnlyCNNModel, croppedOnlyWithinClassCNNModel, croppedOnlyProhibitoryCNNModel
-from utils.utilities import getLabeledData
+from utils.utilities import getLabeledData, exportTrainTest
 
 # Global Variables
 ROOT_DIR = "/Users/Kasinets/Dropbox/Mac/Desktop/SP22_JHU/Rodriguez/traffic_signs"
@@ -87,6 +87,9 @@ def runCroppedOnlyWithinClass():
     train_df[['Image Height', 'Image Width', 'Sign Height', 'Sign Width']] = train_df.apply(lambda row: pd.Series(getImageAndSignDimensions(row['Image Filename'], row['Center in X'], row['Center in Y'], row['Width'], row['Height'], OUTPUT_DIR_TRAIN_CROPPED)), axis = 1)
     test_df[['Image Height', 'Image Width', 'Sign Height', 'Sign Width']] = test_df.apply(lambda row: pd.Series(getImageAndSignDimensions(row['Image Filename'], row['Center in X'], row['Center in Y'], row['Width'], row['Height'], OUTPUT_DIR_TEST_CROPPED)), axis = 1)
     
+    # NOTE: Export train & test as csv files.
+    # exportTrainTest(train_df, test_df, ROOT_DIR)
+    
     print("Run CNN model (using Cropped images, Labeled Signs)...\n")
     croppedOnlyWithinClassCNNModel(train_df, test_df, OUTPUT_DIR_TRAIN_CROPPED, OUTPUT_DIR_TEST_CROPPED, OUTPUT_EXCEL, debug = True)
 
@@ -124,8 +127,8 @@ def main(debug):
     
     # runBaseline()
     # runCroppedOnly()
-    # runCroppedOnlyWithinClass()
-    runCroppedOnlyProhibitory()
+    runCroppedOnlyWithinClass()
+    # runCroppedOnlyProhibitory()
 
     tmr.ShowTime() # End timer.
 
