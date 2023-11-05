@@ -20,18 +20,18 @@ ult.checks()
 
 
 # Global Variables
-ROOT_DIR = "/Users/Kasinets/Dropbox/Mac/Desktop/SP22_JHU/Rodriguez/traffic_signs"
+ROOT_DIR = "/Users/Kasinets/Dropbox/Mac/Desktop/SP22_JHU/Rodriguez/TRAFFIC_SIGNS/traffic_signs"
 DATA_DIR = f"{ROOT_DIR}/data/ts/ts/"
 
-TRAIN_PATH = f'{ROOT_DIR}/utils/detect/datasets/train/'
-VALID_PATH = f'{ROOT_DIR}/utils/detect/datasets/valid/'
-TEST_PATH = f'{ROOT_DIR}/utils/detect/datasets/test/'
 DETECT_PATH = f'{ROOT_DIR}/utils/detect/'
+TRAIN_PATH = f'{DETECT_PATH}datasets/train/'
+VALID_PATH = f'{DETECT_PATH}datasets/valid/'
+TEST_PATH = f'{DETECT_PATH}datasets/test/'
 SOURCE0 = f'{TEST_PATH}'
 RUNS_PATH = f'{DETECT_PATH}runs/detect/'
 
 # Pipeline paths
-YOLO_PRESENT = f'{ROOT_DIR}/pipeline/data/predicted_yolo_presentation/'
+YOLO_PRESENT = f'{ROOT_DIR}/pipeline/data/yolo/predicted_yolo_presentation/'
 
 
 def writeToExcel(prediction_df, evaluate_info_df, OUTPUT_EXCEL, OUTPUT_DIR_TEST=None, name="predictions"):
@@ -103,7 +103,6 @@ def getAnnotations():
         Each .txt file contains one or more annotation. 
         Example: [Class Number], [center in x], [center in y], [Width], [Height].
     """
-    # Data Preparation
     annotation_paths = []
     for dirname, _, filenames in os.walk(DATA_DIR):
         for filename in filenames:
@@ -111,6 +110,16 @@ def getAnnotations():
             if file_ext == ".txt":
                 annotation_paths += [(os.path.join(dirname, filename))]
     return sorted(annotation_paths)
+
+
+def splitIntoSetsImproved(annotation_paths):
+    """ 
+        Use a datset of images and .txt annotations.
+        Create train, test directories of files.
+        Train for YOLO model will contain 10% of original train set (i.e., 630 * 10% = 63 image and annotations).
+    """
+    random.seed(42)
+    # TODO... continue from here... Use example: runCroppedOnlyWithinClass() 
 
 
 def splitIntoSets(annotation_paths):
@@ -320,12 +329,22 @@ def YOLOv8Model():
 
 
 def runYOLO():
-    """ Detect Traffic Signs. Find [Class Number], [center in x], [center in y], [Width], [Height]. """
-    print("\nrunYOLO")
+    """ 
+        Detect Traffic Signs. 
+        Find [Class Number], [center in x], [center in y], [Width], [Height]. 
+    """
+    # TODO: 
+    # - Need to have - use latest model parameter (Rather than train from scratch)
+    # - Save Reports into run, run1, run2... 
+    # - Save Presentation into run, run1, run2...
+    print("\nrunYOLO ...")
 
     annotation_paths = getAnnotations()
     print(f"Total annotated .txt filepaths #: {len(annotation_paths)}\n")
 
+    splitIntoSetsImproved(annotation_paths)
+    return
+    
     splitIntoSets(annotation_paths)
     print(f"Split into train and test.\n")
 

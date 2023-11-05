@@ -33,7 +33,10 @@ https://docs.continuum.io/free/anaconda/install/
 - `conda install -c anaconda numpy`
 - `conda install -c anaconda scikit-learn`
 - `conda install -c anaconda seaborn`
-- `conda install openpyxl`
+- `conda install -c conda-forge ultralytics`
+- `conda install -c pytorch pytorch`
+- `conda install -c pytorch torchvision`
+- `conda install -c anaconda openpyxl`
 
 ## Inside a virtual environment, run the main code:
 - `python main.py`
