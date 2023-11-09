@@ -2,3 +2,8 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
+*.cache
+*.pt
+pipeline
+utils/detect/datasets/
+utils/detect/runs/

@@ -3,7 +3,7 @@ import cv2 as cv
 import random
 import numpy as np
 import pandas as pd
-from tqdm import tqdm
+# from tqdm import tqdm
 import shutil
 from shutil import copyfile
 import matplotlib.pyplot as plt
@@ -16,6 +16,7 @@ import yaml
 from sklearn.metrics import accuracy_score
 from openpyxl import Workbook
 from datetime import datetime
+from ultralytics_helper import getLabeledData, getImageDimensions
 ult.checks()
 
 
@@ -32,6 +33,9 @@ RUNS_PATH = f'{DETECT_PATH}runs/detect/'
 
 # Pipeline paths
 YOLO_PRESENT = f'{ROOT_DIR}/pipeline/data/yolo/predicted_yolo_presentation/'
+# train/test cropped
+OUTPUT_DIR_TRAIN_CROPPED = f"{ROOT_DIR}/data/train_cropped/images/"
+OUTPUT_DIR_TEST_CROPPED = f"{ROOT_DIR}/data/test_cropped/images/"
 
 
 def writeToExcel(prediction_df, evaluate_info_df, OUTPUT_EXCEL, OUTPUT_DIR_TEST=None, name="predictions"):
@@ -112,14 +116,100 @@ def getAnnotations():
     return sorted(annotation_paths)
 
 
-def splitIntoSetsImproved(annotation_paths):
+def splitIntoSetsImproved():
     """ 
-        Use a datset of images and .txt annotations.
-        Create train, test directories of files.
-        Train for YOLO model will contain 10% of original train set (i.e., 630 * 10% = 63 image and annotations).
+        Use original Train dataset of images and .txt annotations.
+        Use 10% (of original Train) for Yolo train, and 90% for YOLO test. 
+        Example: 
+            Train for YOLO model will contain 10% of original Train set 
+            (i.e., 630 * 10% = 63 image and annotations).
     """
     random.seed(42)
-    # TODO... continue from here... Use example: runCroppedOnlyWithinClass() 
+    orig_train_df, orig_test_df = getLabeledData(root_dir = ROOT_DIR, data_dir = DATA_DIR)
+
+    print("Calculate image dimensions...\n")
+    orig_train_df[['Image Height', 'Image Width']] = orig_train_df.apply(lambda row: pd.Series(getImageDimensions(row['Image Filename'], row['Center in X'], row['Center in Y'], row['Width'], row['Height'], OUTPUT_DIR_TRAIN_CROPPED)), axis = 1)
+
+    print("\n orig_train_df: ")
+    # Sort by image dimensions (We want to get diverse image dimensions in Yolo Train set)
+    # Our focus is on Traffic Sign detection.
+    orig_train_df = orig_train_df.sort_values(by = 'Image Height', ascending = False)
+    orig_train_df = orig_train_df.reset_index(drop=True)
+
+    sorted_filenames = orig_train_df["Text Filename"].unique()
+    print(f"\nsorted_filenames: {len(sorted_filenames)}")
+
+    # Create Train Set & Validation Set for Yolo - 15% of original set (10% for train, 5% for validation)
+    train_ratio = 0.10 
+    val_ratio = 0.05
+    total_ratio_of_orig = train_ratio + val_ratio
+    total_rows = len(sorted_filenames)
+    num_rows_to_select = int(total_ratio_of_orig * total_rows)
+    step_size = total_rows // num_rows_to_select
+
+    all_indices = [i for i in range(total_rows)]
+    selected_indices = [i for i in range(0, total_rows, step_size)]
+
+    print(f"\nall_indices ({len(all_indices)}): {all_indices}")
+    print(f"\nselected_indices ({len(selected_indices)}): {selected_indices}")
+
+    # Percentage of total selected set that validation set takes
+    val_set_of_total_selected = val_ratio / (train_ratio + val_ratio)
+    print(f"\nval_set_of_total_selected: {val_set_of_total_selected}")
+    num_val_set_to_select = int(val_set_of_total_selected * len(selected_indices))
+    print(f"\nnum_val_set_to_select: {num_val_set_to_select}")
+    step_size2 = len(selected_indices) // num_val_set_to_select
+
+    # Validation Set for Yolo
+    selected_val_indices = [selected_indices[idx] for idx in range(0, len(selected_indices), step_size2)]
+    print(f"\nselected_val_indices ({len(selected_val_indices)}): {selected_val_indices}")
+
+    # Train Set for Yolo
+    selected_train_indices = list(set(selected_indices) - set(selected_val_indices))
+    print(f"\nselected_train_indices ({len(selected_train_indices)}): {selected_train_indices}")
+
+    # Test Set for Yolo
+    test_indices = list(set(all_indices) - set(selected_indices))
+    print(f"\ntest_indices ({len(test_indices)}): {test_indices}")
+
+    for i in selected_val_indices:
+        ano_path = os.path.join(DATA_DIR, sorted_filenames[i])
+        img_path = os.path.join(DATA_DIR, ano_path[0 : -4] + '.jpg')
+
+        # Copy
+        output_ano = os.path.join(VALID_PATH, f"{os.path.splitext(os.path.basename(ano_path))[0]}.txt")
+        shutil.copyfile(ano_path, output_ano)
+
+        output_img = os.path.join(VALID_PATH, f"{os.path.splitext(os.path.basename(img_path))[0]}.jpg")
+        shutil.copyfile(img_path, output_img)
+    
+    print(f"\nVALID_PATH (total files .jpg & .txt): {len(os.listdir(VALID_PATH))}")
+
+    for i in selected_train_indices:
+        ano_path = os.path.join(DATA_DIR, sorted_filenames[i])
+        img_path = os.path.join(DATA_DIR, ano_path[0 : -4] + '.jpg')
+        
+        # Copy 
+        output_ano = os.path.join(TRAIN_PATH, f"{os.path.splitext(os.path.basename(ano_path))[0]}.txt")
+        shutil.copyfile(ano_path, output_ano)
+
+        output_img = os.path.join(TRAIN_PATH, f"{os.path.splitext(os.path.basename(img_path))[0]}.jpg")
+        shutil.copyfile(img_path, output_img)
+    
+    print(f"\nTRAIN_PATH (total files .jpg & .txt): {len(os.listdir(TRAIN_PATH))}")
+
+    for i in test_indices:
+        ano_path = os.path.join(DATA_DIR, sorted_filenames[i])
+        img_path = os.path.join(DATA_DIR, ano_path[0 : -4] + '.jpg')
+
+        # Copy 
+        output_ano = os.path.join(TEST_PATH, f"{os.path.splitext(os.path.basename(ano_path))[0]}.txt")
+        shutil.copyfile(ano_path, output_ano)
+
+        output_img = os.path.join(TEST_PATH, f"{os.path.splitext(os.path.basename(img_path))[0]}.jpg")
+        shutil.copyfile(img_path, output_img)
+
+    print(f"\nTEST_PATH (total files .jpg & .txt): {len(os.listdir(TEST_PATH))}")
 
 
 def splitIntoSets(annotation_paths):
@@ -264,8 +354,8 @@ def YOLOv8Model():
     # Original: yolov8x
     # NOTE: Comment Out, because we don't want to Re-train. Re-using: runs/detect/train4/
 
-    # model = YOLO("yolov8n.pt")
-    # model.train(data = 'data.yaml', epochs = 12, imgsz = 480)
+    model = YOLO(os.path.join(DETECT_PATH, "yolov8n.pt"))
+    model.train(data = os.path.join(DETECT_PATH, 'data.yaml'), epochs = 12, imgsz = 480, project = RUNS_PATH)
 
     # Predict 
     ppaths = []
@@ -339,18 +429,17 @@ def runYOLO():
     # - Save Presentation into run, run1, run2...
     print("\nrunYOLO ...")
 
-    annotation_paths = getAnnotations()
-    print(f"Total annotated .txt filepaths #: {len(annotation_paths)}\n")
+    splitIntoSetsImproved()
 
-    splitIntoSetsImproved(annotation_paths)
-    return
-    
-    splitIntoSets(annotation_paths)
-    print(f"Split into train and test.\n")
+    # annotation_paths = getAnnotations()
+    # print(f"Total annotated .txt filepaths #: {len(annotation_paths)}\n")
+    # splitIntoSets(annotation_paths)
+
+    print(f"\nSplit into train and test.\n")
 
     createYAML()
     print("Created YAML file.\n")
-    
+
     print("Run YOLOv8 model (using Full images)...\n")
     # unable_to_predict - a list paths (that a Model can't predict)
     PBOX, unable_to_predict = YOLOv8Model()
@@ -410,7 +499,7 @@ def runYOLO():
         presentation_path = os.path.join(TEST_PATH, row["Image Filename"])
         # Add Bounding boxes and Save in "presentation" directory.
         # NOTE: Comment out temporarily
-        # draw_box2(presentation_path, result)
+        draw_box2(presentation_path, result)
     
     # Stats
     evaluate_info_df = pd.DataFrame({'Total signs (in Test)': [f"{len(result)}"], 

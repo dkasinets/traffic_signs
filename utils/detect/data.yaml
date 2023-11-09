@@ -1,3 +1,3 @@
-{names: [prohibitor, danger, mandatory, other], nc: 4, test: /Users/Kasinets/Dropbox/Mac/Desktop/SP22_JHU/Rodriguez/traffic_signs/utils/detect/datasets/test/,
-  train: /Users/Kasinets/Dropbox/Mac/Desktop/SP22_JHU/Rodriguez/traffic_signs/utils/detect/datasets/train/,
-  val: /Users/Kasinets/Dropbox/Mac/Desktop/SP22_JHU/Rodriguez/traffic_signs/utils/detect/datasets/valid/}
+{names: [prohibitor, danger, mandatory, other], nc: 4, test: /Users/Kasinets/Dropbox/Mac/Desktop/SP22_JHU/Rodriguez/TRAFFIC_SIGNS/traffic_signs/utils/detect/datasets/test/,
+  train: /Users/Kasinets/Dropbox/Mac/Desktop/SP22_JHU/Rodriguez/TRAFFIC_SIGNS/traffic_signs/utils/detect/datasets/train/,
+  val: /Users/Kasinets/Dropbox/Mac/Desktop/SP22_JHU/Rodriguez/TRAFFIC_SIGNS/traffic_signs/utils/detect/datasets/valid/}

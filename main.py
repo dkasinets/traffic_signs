@@ -125,10 +125,18 @@ def main(debug):
     if debug:
         showDataSamples(DATA_DIR)
     
-    # runBaseline()
-    # runCroppedOnly()
-    runCroppedOnlyWithinClass()
-    # runCroppedOnlyProhibitory()
+    # runBaseline() # Not Needed
+
+    # CNN 1 - 4 Classes
+    runCroppedOnly() 
+
+    # runCroppedOnlyWithinClass() # Optional
+
+    # CNN 2 - 12 Classes -> TODO: Rework: Speed limits aggregated
+    # runCroppedOnlyProhibitory() 
+
+    # CNN 3 - Speed signs only 
+    # runCroppedOnlySpeedSigns() 
 
     tmr.ShowTime() # End timer.
 
