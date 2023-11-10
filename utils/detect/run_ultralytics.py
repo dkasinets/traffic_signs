@@ -140,7 +140,7 @@ def splitIntoSetsImproved():
     print(f"\nsorted_filenames: {len(sorted_filenames)}")
 
     # Create Train Set & Validation Set for Yolo - 15% of original set (10% for train, 5% for validation)
-    train_ratio = 0.10 
+    train_ratio = 0.45
     val_ratio = 0.05
     total_ratio_of_orig = train_ratio + val_ratio
     total_rows = len(sorted_filenames)
