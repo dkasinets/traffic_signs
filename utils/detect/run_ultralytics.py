@@ -33,12 +33,14 @@ RUNS_PATH = f'{DETECT_PATH}runs/detect/'
 
 # Pipeline paths
 YOLO_PRESENT = f'{ROOT_DIR}/pipeline/data/yolo/predicted_yolo_presentation/'
+YOLO_PRESENT_EXCEL = f'{ROOT_DIR}/output/excel/yolo/'
+YOLO_PRESENT_IMG = f'{ROOT_DIR}/output/images/yolo/'
 # train/test cropped
 OUTPUT_DIR_TRAIN_CROPPED = f"{ROOT_DIR}/data/train_cropped/images/"
 OUTPUT_DIR_TEST_CROPPED = f"{ROOT_DIR}/data/test_cropped/images/"
 
 
-def writeToExcel(prediction_df, evaluate_info_df, OUTPUT_EXCEL, OUTPUT_DIR_TEST=None, name="predictions"):
+def writeToExcel(prediction_df, evaluate_info_df, OUTPUT_EXCEL, formatted_date, OUTPUT_DIR_TEST=None, name="predictions"):
     """ Write results to Excel """
     wb = Workbook()
     ws1 = wb.active
@@ -66,8 +68,6 @@ def writeToExcel(prediction_df, evaluate_info_df, OUTPUT_EXCEL, OUTPUT_DIR_TEST=
     for column in ws2.columns:
         ws2.column_dimensions[column[0].column_letter].width = 24
     
-    now = datetime.now()
-    formatted_date = now.strftime("%m-%d-%Y-%I-%M-%S-%p")
     wb.save(f"{OUTPUT_EXCEL}{name}_{formatted_date}.xlsx")
 
 
@@ -124,6 +124,7 @@ def splitIntoSetsImproved():
             Train for YOLO model will contain 10% of original Train set 
             (i.e., 630 * 10% = 63 image and annotations).
     """
+    # TODO: Overwrite train/test/validation folders
     random.seed(42)
     orig_train_df, orig_test_df = getLabeledData(root_dir = ROOT_DIR, data_dir = DATA_DIR)
 
@@ -300,7 +301,7 @@ def getRecentTrainDir():
     return f"train{max_num}" if max_num > 0 else "train"
 
 
-def draw_box2(ipath, PBOX):
+def draw_box2(ipath, PBOX, output_filepath):
     """
         Display Predicted bounding box around the sign.
     """
@@ -334,8 +335,7 @@ def draw_box2(ipath, PBOX):
                 cv.rectangle(image, (x_min, y_min), (x_max, y_max), (255, 0, 0), 2) # blue
 
     # Save Images
-    output_filepath = os.path.join(YOLO_PRESENT, f"{file_name}")
-    cv.imwrite(output_filepath, image)
+    cv.imwrite(os.path.join(output_filepath, f"{file_name}"), image)
 
     return image
 
@@ -352,10 +352,13 @@ def YOLOv8Model():
     # Train
     # Command: yolo task=detect mode=train model=yolov8x.pt data=data.yaml epochs=12 imgsz=480
     # Original: yolov8x
+    # tried: yolov8n - 58.9% detection, epochs = 20, imgsz = 480
+    # tried 2: yolov8n - 73.6% detection, epochs = 20, imgsz = 640
+    # tried 3: yolov8n - 82.8% detection, epochs = 20, imgsz = 800
     # NOTE: Comment Out, because we don't want to Re-train. Re-using: runs/detect/train4/
 
     model = YOLO(os.path.join(DETECT_PATH, "yolov8n.pt"))
-    model.train(data = os.path.join(DETECT_PATH, 'data.yaml'), epochs = 12, imgsz = 480, project = RUNS_PATH)
+    model.train(data = os.path.join(DETECT_PATH, 'data.yaml'), epochs = 20, imgsz = 800, project = RUNS_PATH)
 
     # Predict 
     ppaths = []
@@ -456,7 +459,6 @@ def runYOLO():
     print(labels)
 
     tDS = getTestLabelsFromTxtFiles(labels, TEST_PATH, test_paths)
-    # tDS.rename(columns={'Class Number': '(actual) class'}, inplace = True)
     selected_tDS = tDS[['(actual) class', 'Center in X', 'Center in Y', 'Width', 'Height', 
                         "Image Filename", 'Image Filename (with index)']]
     sorted_selected_tDS = selected_tDS.sort_values(by = 'Image Filename (with index)').reset_index(drop=True)
@@ -490,6 +492,12 @@ def runYOLO():
     # Models Incorrectly Detects Signs
     overpredicted = result[pd.isna(result['(actual) class'])]
 
+    # Create Output folder for YOLO images
+    now = datetime.now()
+    formatted_date = now.strftime("%m-%d-%Y-%I-%M-%S-%p")
+    output_img_filepath = f"{YOLO_PRESENT_IMG}{f'yolo_{formatted_date}'}"
+    os.makedirs(output_img_filepath, exist_ok = True) # Create the output directory if it doesn't exist
+
     print("\nSave Predicted YOLO as Presentations (With bounding boxes on images).")
     # "00651.jpg"
     # "00680.jpg"
@@ -498,8 +506,7 @@ def runYOLO():
     for index, row in sorted_selected_tDS.iterrows():
         presentation_path = os.path.join(TEST_PATH, row["Image Filename"])
         # Add Bounding boxes and Save in "presentation" directory.
-        # NOTE: Comment out temporarily
-        draw_box2(presentation_path, result)
+        draw_box2(presentation_path, result, output_img_filepath)
     
     # Stats
     evaluate_info_df = pd.DataFrame({'Total signs (in Test)': [f"{len(result)}"], 
@@ -511,7 +518,7 @@ def runYOLO():
                                      'Under-predicted signs': str(len(underpredicted)), 
                                      'Over-predicted signs': str(len(overpredicted))})
     
-    writeToExcel(rows_with_all_values, evaluate_info_df, YOLO_PRESENT, OUTPUT_DIR_TEST = None, name = "yolo_results")
+    writeToExcel(rows_with_all_values, evaluate_info_df, YOLO_PRESENT_EXCEL, formatted_date, OUTPUT_DIR_TEST = None, name = "yolo_results")
 
 
 def main(debug):
