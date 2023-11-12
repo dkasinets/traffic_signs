@@ -16,6 +16,7 @@ import yaml
 from sklearn.metrics import accuracy_score
 from openpyxl import Workbook
 from datetime import datetime
+import time
 from ultralytics_helper import getLabeledData, getImageDimensions
 ult.checks()
 
@@ -38,6 +39,17 @@ YOLO_PRESENT_IMG = f'{ROOT_DIR}/output/images/yolo/'
 # train/test cropped
 OUTPUT_DIR_TRAIN_CROPPED = f"{ROOT_DIR}/data/train_cropped/images/"
 OUTPUT_DIR_TEST_CROPPED = f"{ROOT_DIR}/data/test_cropped/images/"
+
+
+class Timer():
+    """ Utility class (timer) """
+    def __init__(self, lim:'RunTimeLimit'=60*5):
+        self.t0, self.lim, _ = time.time(), lim, print(f'⏳ Started training...')
+    
+    def ShowTime(self):
+        msg = f'Runtime is {time.time() - self.t0:.0f} sec'
+        print(f'\033[91m\033[1m' + msg + f' > {self.lim} sec limit!\033[0m' if (time.time() - self.t0 - 1) > self.lim else msg)
+        return msg
 
 
 def writeToExcel(prediction_df, evaluate_info_df, OUTPUT_EXCEL, formatted_date, OUTPUT_DIR_TEST=None, name="predictions"):
@@ -132,16 +144,16 @@ def splitIntoSetsImproved():
     orig_train_df[['Image Height', 'Image Width']] = orig_train_df.apply(lambda row: pd.Series(getImageDimensions(row['Image Filename'], row['Center in X'], row['Center in Y'], row['Width'], row['Height'], OUTPUT_DIR_TRAIN_CROPPED)), axis = 1)
 
     print("\n orig_train_df: ")
-    # Sort by image dimensions (We want to get diverse image dimensions in Yolo Train set)
+    # Sort by multiple columns (class & image dimensions) - We want to get diverse image dimensions in Yolo Train set
     # Our focus is on Traffic Sign detection.
-    orig_train_df = orig_train_df.sort_values(by = 'Image Height', ascending = False)
+    orig_train_df = orig_train_df.sort_values(by = ['Class Number', 'Image Height', 'Image Width'], ascending = False)
     orig_train_df = orig_train_df.reset_index(drop=True)
 
     sorted_filenames = orig_train_df["Text Filename"].unique()
     print(f"\nsorted_filenames: {len(sorted_filenames)}")
 
-    # Create Train Set & Validation Set for Yolo - 15% of original set (10% for train, 5% for validation)
-    train_ratio = 0.45
+    # Create Train Set & Validation Set for Yolo - 25% of original set (20% for train, 5% for validation)
+    train_ratio = 0.2
     val_ratio = 0.05
     total_ratio_of_orig = train_ratio + val_ratio
     total_rows = len(sorted_filenames)
@@ -173,6 +185,11 @@ def splitIntoSetsImproved():
     test_indices = list(set(all_indices) - set(selected_indices))
     print(f"\ntest_indices ({len(test_indices)}): {test_indices}")
 
+    # Delete/ re-create valid set
+    if os.path.exists(VALID_PATH):
+        shutil.rmtree(VALID_PATH)
+    os.makedirs(VALID_PATH)
+
     for i in selected_val_indices:
         ano_path = os.path.join(DATA_DIR, sorted_filenames[i])
         img_path = os.path.join(DATA_DIR, ano_path[0 : -4] + '.jpg')
@@ -186,6 +203,11 @@ def splitIntoSetsImproved():
     
     print(f"\nVALID_PATH (total files .jpg & .txt): {len(os.listdir(VALID_PATH))}")
 
+    # Delete/ re-create train set
+    if os.path.exists(TRAIN_PATH):
+        shutil.rmtree(TRAIN_PATH)
+    os.makedirs(TRAIN_PATH)
+
     for i in selected_train_indices:
         ano_path = os.path.join(DATA_DIR, sorted_filenames[i])
         img_path = os.path.join(DATA_DIR, ano_path[0 : -4] + '.jpg')
@@ -198,6 +220,11 @@ def splitIntoSetsImproved():
         shutil.copyfile(img_path, output_img)
     
     print(f"\nTRAIN_PATH (total files .jpg & .txt): {len(os.listdir(TRAIN_PATH))}")
+
+    # Delete/ re-create train set
+    if os.path.exists(TEST_PATH):
+        shutil.rmtree(TEST_PATH)
+    os.makedirs(TEST_PATH)
 
     for i in test_indices:
         ano_path = os.path.join(DATA_DIR, sorted_filenames[i])
@@ -340,7 +367,7 @@ def draw_box2(ipath, PBOX, output_filepath):
     return image
 
 
-def YOLOv8Model():
+def YOLOv8Model(trainNew):
     """ 
         Goal: Predict bounding boxes and 4 sign classes. 
     """
@@ -351,14 +378,25 @@ def YOLOv8Model():
 
     # Train
     # Command: yolo task=detect mode=train model=yolov8x.pt data=data.yaml epochs=12 imgsz=480
-    # Original: yolov8x
+    # yolov8x (best model): train_ratio = 0.1, val_ratio = 0.05
+    # tried: yolov8x - 74.5% detection, epochs = 12, imgsz = 480
+    # tried 2 (runs/train11): yolov8x - 86.0% detection, epochs = 20, imgsz = 640
+    # tried 3: yolov8x - 82.9% detection, epochs = 12, imgsz = 800
+
+    # yolov8x (best model): train_ratio = 0.2, val_ratio = 0.05
+    # Also, data is sorted by 'Class Number', 'Image Height', 'Image Width'
+    # tried (runs/train13): yolov8x - 88.8% detection, epochs = 20, imgsz = 800
+
+    # yolov8n (quicker model): train_ratio = 0.45, val_ratio = 0.05
     # tried: yolov8n - 58.9% detection, epochs = 20, imgsz = 480
     # tried 2: yolov8n - 73.6% detection, epochs = 20, imgsz = 640
     # tried 3: yolov8n - 82.8% detection, epochs = 20, imgsz = 800
+    # tried 4 (runs/train8): yolov8n - 93.6% detection, epochs = 20, imgsz = 1360
     # NOTE: Comment Out, because we don't want to Re-train. Re-using: runs/detect/train4/
 
-    model = YOLO(os.path.join(DETECT_PATH, "yolov8n.pt"))
-    model.train(data = os.path.join(DETECT_PATH, 'data.yaml'), epochs = 20, imgsz = 800, project = RUNS_PATH)
+    if trainNew:
+        model = YOLO(os.path.join(DETECT_PATH, "yolov8x.pt"))
+        model.train(data = os.path.join(DETECT_PATH, 'data.yaml'), epochs = 20, imgsz = 800, project = RUNS_PATH)
 
     # Predict 
     ppaths = []
@@ -431,6 +469,7 @@ def runYOLO():
     # - Save Reports into run, run1, run2... 
     # - Save Presentation into run, run1, run2...
     print("\nrunYOLO ...")
+    tmr = Timer() # Set timer
 
     splitIntoSetsImproved()
 
@@ -445,7 +484,7 @@ def runYOLO():
 
     print("Run YOLOv8 model (using Full images)...\n")
     # unable_to_predict - a list paths (that a Model can't predict)
-    PBOX, unable_to_predict = YOLOv8Model()
+    PBOX, unable_to_predict = YOLOv8Model(trainNew = False)
 
     # Get test dataset actual labels
     test_paths = []
@@ -509,6 +548,7 @@ def runYOLO():
         draw_box2(presentation_path, result, output_img_filepath)
     
     # Stats
+    runtime = tmr.ShowTime() # End timer.
     evaluate_info_df = pd.DataFrame({'Total signs (in Test)': [f"{len(result)}"], 
                                      'Detected signs (without over-predicted & under-predicted)': str(len(rows_with_all_values)), 
                                      'Detection Accuracy': str(f"{detection_accuracy}%"),
@@ -516,7 +556,8 @@ def runYOLO():
                                      'Subset Classif. Accuracy (of detected signs only))': str(f"{subset_accuracy}%"), 
                                      'Incorrectly detected signs (over-predicted & under-predicted)': str(len(result_with_nan_or_empty)), 
                                      'Under-predicted signs': str(len(underpredicted)), 
-                                     'Over-predicted signs': str(len(overpredicted))})
+                                     'Over-predicted signs': str(len(overpredicted)),
+                                     'Runtime': str(runtime)})
     
     writeToExcel(rows_with_all_values, evaluate_info_df, YOLO_PRESENT_EXCEL, formatted_date, OUTPUT_DIR_TEST = None, name = "yolo_results")
 
