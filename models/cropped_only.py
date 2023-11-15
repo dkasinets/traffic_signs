@@ -139,12 +139,13 @@ def croppedOnlyCNNModel(train_df, test_df, OUTPUT_DIR_TRAIN, OUTPUT_DIR_TEST, OU
     train_class_counts_dict = {class_name: count for class_name, count in train_dataset['Class Number'].value_counts().items()}
     test_class_counts_dict = {class_name: count for class_name, count in test_dataset['Class Number'].value_counts().items()}
     runtime = tmr.ShowTime() # End timer.
-    evaluate_info_df = pd.DataFrame({'Total signs (in Test)': str(prediction_df.shape[0]), 
-                                     'Incorrectly classified signs': str(prediction_df.shape[0] - int(pred_accuracy_class_number * prediction_df.shape[0])), 
-                                     'Classif. Accuracy (on Train)': [f"{round(pred_on_train['accuracy'] * 100, 4)}%"], 
-                                     'Classif. Accuracy (on Test)': [f"{round(pred_accuracy_class_number * 100, 4)}%"], 
-                                     'Class Counts (Train set)': str(train_class_counts_dict),
-                                     'Class Counts (Test set)': str(test_class_counts_dict),
+    evaluate_info_df = pd.DataFrame({'Evaluation Accuracy (on Train)': [f"{round(pred_on_train['accuracy'] * 100, 4)}%"], 
+                                     'Classif. Accuracy (on Test)': [f"{round(pred_accuracy_class_number * 100, 4)}%"],
+                                     'Incorrectly classified signs (on Test)': str(prediction_df.shape[0] - int(pred_accuracy_class_number * prediction_df.shape[0])),  
+                                     'Total signs (in Train set)': str(train_dataset.shape[0]), 
+                                     'Class Counts (Train set)': str(train_class_counts_dict), 
+                                     'Total signs (in Test set)': str(prediction_df.shape[0]), 
+                                     'Class Counts (Test set)': str(test_class_counts_dict), 
                                      'Runtime': str(runtime)})
     
     writeToExcel(prediction_df, evaluate_info_df, OUTPUT_EXCEL, OUTPUT_DIR_TEST = None, name = "cropped_only")
@@ -282,7 +283,7 @@ def croppedOnlyProhibitoryCNNModel(train_df, test_df, OUTPUT_DIR_TRAIN, OUTPUT_D
         Goal: Predict 5 Road Sign Classes.
         The total number is 5, because we only consider Prohibitory Signs.
         The speed signs are all aggregated as ClassID = 999.
-        
+
         Create a CNN model for class prediction. 
         The input is cropped images. 
         The target prediction value is class ids.
@@ -415,9 +416,12 @@ def croppedOnlyProhibitoryCNNModel(train_df, test_df, OUTPUT_DIR_TRAIN, OUTPUT_D
     train_class_counts_dict = {class_name: count for class_name, count in train_dataset['ClassID'].value_counts().items()}
     test_class_counts_dict = {class_name: count for class_name, count in test_dataset['ClassID'].value_counts().items()}
     runtime = tmr.ShowTime() # End timer.
-    evaluate_info_df = pd.DataFrame({'Classif. Accuracy (on Train)': [f"{round(pred_on_train['accuracy'], 4) * 1000}%"], 
+    evaluate_info_df = pd.DataFrame({'Evaluation Accuracy (on Train)': [f"{round(pred_on_train['accuracy'], 4) * 100}%"], 
                                      'Classif. Accuracy (on Test)': [f"{round(pred_accuracy_class_id, 4) * 100}%"], 
+                                     'Incorrectly classified signs (on Test)': str(prediction_df.shape[0] - int(pred_accuracy_class_id * prediction_df.shape[0])), 
+                                     'Total signs (in Train set)': str(train_dataset.shape[0]), 
                                      'Class Counts (Train set)': str(train_class_counts_dict),
+                                     'Total signs (in Test set)': str(prediction_df.shape[0]), 
                                      'Class Counts (Test set)': str(test_class_counts_dict),
                                      'Runtime': str(runtime)})
     

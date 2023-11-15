@@ -177,10 +177,10 @@ def main(debug):
     # runCroppedOnly()
 
     # CNN 2 - 5 Classes -> Speed limits aggregated (as 1 Class)
-    runCroppedOnlyProhibitory()
+    # runCroppedOnlyProhibitory()
 
     # CNN 3 - 8 Classes - Speed signs only 
-    # runCroppedOnlySpeedSigns() 
+    runCroppedOnlySpeedSigns() 
 
     # tmr.ShowTime() # End timer.
 
