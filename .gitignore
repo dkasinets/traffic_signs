@@ -11,3 +11,4 @@ data/test_cropped_speed_only/
 data/train_cropped_speed_only/
 output/excel/yolo/
 output/images/
+output/excel/cropped_only

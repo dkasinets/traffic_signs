@@ -36,6 +36,10 @@ OUTPUT_DIR_TEST = f"{ROOT_DIR}/data/test/images/"
 # Predictions
 OUTPUT_EXCEL = f"{ROOT_DIR}/output/excel/"
 
+# Cropped Only (CNN #1)
+CROPPED_ONLY_PRESENT_EXCEL = f'{ROOT_DIR}/output/excel/cropped_only/'
+CROPPED_ONLY_PRESENT_IMG = f'{ROOT_DIR}/output/images/cropped_only/'
+
 
 def runBaseline():
     """ Baseline Multi-Output CNN Model """
@@ -79,7 +83,7 @@ def runCroppedOnly():
     test_df[['Image Height', 'Image Width', 'Sign Height', 'Sign Width']] = test_df.apply(lambda row: pd.Series(getImageAndSignDimensions(row['Image Filename'], row['Center in X'], row['Center in Y'], row['Width'], row['Height'], OUTPUT_DIR_TEST_CROPPED)), axis = 1)
 
     print("Run CNN model (using Cropped images)...\n")
-    croppedOnlyCNNModel(train_df, test_df, OUTPUT_DIR_TRAIN_CROPPED, OUTPUT_DIR_TEST_CROPPED, OUTPUT_EXCEL, debug = True)
+    croppedOnlyCNNModel(train_df, test_df, OUTPUT_DIR_TRAIN_CROPPED, OUTPUT_DIR_TEST_CROPPED, CROPPED_ONLY_PRESENT_EXCEL, debug = True)
 
 
 def runCroppedOnlyWithinClass():
@@ -161,21 +165,21 @@ def runCroppedOnlySpeedSigns():
 
 def main(debug):
     print("\n")
-    tmr = Timer() # Set timer
+    # tmr = Timer() # Set timer
     
     if debug:
         showDataSamples(DATA_DIR)
     
     # CNN 1 - 4 Classes
     runCroppedOnly()
-    
+
     # CNN 2 - 5 Classes -> Speed limits aggregated (as 1 Class)
     # runCroppedOnlyProhibitory()
 
     # CNN 3 - 8 Classes - Speed signs only 
     # runCroppedOnlySpeedSigns() 
 
-    tmr.ShowTime() # End timer.
+    # tmr.ShowTime() # End timer.
 
 
 if __name__ == "__main__":

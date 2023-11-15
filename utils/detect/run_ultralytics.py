@@ -152,9 +152,9 @@ def splitIntoSetsImproved():
     sorted_filenames = orig_train_df["Text Filename"].unique()
     print(f"\nsorted_filenames: {len(sorted_filenames)}")
 
-    # Create Train Set & Validation Set for Yolo - 25% of original set (20% for train, 5% for validation)
-    train_ratio = 0.2
-    val_ratio = 0.05
+    # Create Train Set & Validation Set for Yolo - 50% of original set (40% for train, 10% for validation)
+    train_ratio = 0.4
+    val_ratio = 0.1
     total_ratio_of_orig = train_ratio + val_ratio
     total_rows = len(sorted_filenames)
     num_rows_to_select = int(total_ratio_of_orig * total_rows)
@@ -387,16 +387,20 @@ def YOLOv8Model(trainNew):
     # Also, data is sorted by 'Class Number', 'Image Height', 'Image Width'
     # tried (runs/train13): yolov8x - 88.8% detection, epochs = 20, imgsz = 800
 
+    # yolov8s (more models): train_ratio = 0.45, val_ratio = 0.05
+    # tried: yolov8s - 92.6% detection, epochs = 20, imgsz = 1360
+
     # yolov8n (quicker model): train_ratio = 0.45, val_ratio = 0.05
     # tried: yolov8n - 58.9% detection, epochs = 20, imgsz = 480
     # tried 2: yolov8n - 73.6% detection, epochs = 20, imgsz = 640
     # tried 3: yolov8n - 82.8% detection, epochs = 20, imgsz = 800
     # tried 4 (runs/train8): yolov8n - 93.6% detection, epochs = 20, imgsz = 1360
-    # NOTE: Comment Out, because we don't want to Re-train. Re-using: runs/detect/train4/
-
+    
+    # yolov8n (quicker model): train_ratio = 0.40, val_ratio = 0.1
+    # tried 5: yolov8n - ? detection, epochs = 40, imgsz = 1360
     if trainNew:
-        model = YOLO(os.path.join(DETECT_PATH, "yolov8x.pt"))
-        model.train(data = os.path.join(DETECT_PATH, 'data.yaml'), epochs = 20, imgsz = 800, project = RUNS_PATH)
+        model = YOLO(os.path.join(DETECT_PATH, "yolov8n.pt"))
+        model.train(data = os.path.join(DETECT_PATH, 'data.yaml'), epochs = 40, imgsz = 1360, project = RUNS_PATH)
 
     # Predict 
     ppaths = []
