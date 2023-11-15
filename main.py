@@ -38,7 +38,10 @@ OUTPUT_EXCEL = f"{ROOT_DIR}/output/excel/"
 
 # Cropped Only (CNN #1)
 CROPPED_ONLY_PRESENT_EXCEL = f'{ROOT_DIR}/output/excel/cropped_only/'
-CROPPED_ONLY_PRESENT_IMG = f'{ROOT_DIR}/output/images/cropped_only/'
+# Prohibitory Signs Only (CNN #2)
+PROHIBITORY_ONLY_PRESENT_EXCEL = f'{ROOT_DIR}/output/excel/prohibitory_only/'
+# Speed Sings Only (CNN #3)
+SPEED_ONLY_PRESENT_EXCEL = f'{ROOT_DIR}/output/excel/speed_only/'
 
 
 def runBaseline():
@@ -129,7 +132,7 @@ def runCroppedOnlyProhibitory():
     filtered_test_df[['Image Height', 'Image Width', 'Sign Height', 'Sign Width']] = filtered_test_df.apply(lambda row: pd.Series(getImageAndSignDimensions(row['Image Filename'], row['Center in X'], row['Center in Y'], row['Width'], row['Height'], OUTPUT_DIR_TEST_CROPPED_PROHIB_ONLY)), axis = 1)
     
     print("Run CNN model (using Cropped images, Labeled Signs, Prohibitory Signs only)...\n")
-    croppedOnlyProhibitoryCNNModel(filtered_train_df, filtered_test_df, OUTPUT_DIR_TRAIN_CROPPED_PROHIB_ONLY, OUTPUT_DIR_TEST_CROPPED_PROHIB_ONLY, OUTPUT_EXCEL, debug = True)
+    croppedOnlyProhibitoryCNNModel(filtered_train_df, filtered_test_df, OUTPUT_DIR_TRAIN_CROPPED_PROHIB_ONLY, OUTPUT_DIR_TEST_CROPPED_PROHIB_ONLY, PROHIBITORY_ONLY_PRESENT_EXCEL, debug = True)
 
 
 def runCroppedOnlySpeedSigns():
@@ -171,10 +174,10 @@ def main(debug):
         showDataSamples(DATA_DIR)
     
     # CNN 1 - 4 Classes
-    runCroppedOnly()
+    # runCroppedOnly()
 
     # CNN 2 - 5 Classes -> Speed limits aggregated (as 1 Class)
-    # runCroppedOnlyProhibitory()
+    runCroppedOnlyProhibitory()
 
     # CNN 3 - 8 Classes - Speed signs only 
     # runCroppedOnlySpeedSigns() 
