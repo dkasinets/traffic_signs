@@ -163,7 +163,7 @@ def runCroppedOnlySpeedSigns():
     filtered_test_df[['Image Height', 'Image Width', 'Sign Height', 'Sign Width']] = filtered_test_df.apply(lambda row: pd.Series(getImageAndSignDimensions(row['Image Filename'], row['Center in X'], row['Center in Y'], row['Width'], row['Height'], OUTPUT_DIR_TEST_CROPPED_SPEED_ONLY)), axis = 1)
     
     print("Run CNN model (using Cropped images, Labeled Signs, Prohibitory Signs only)...\n")
-    croppedOnlySpeedCNNModel(filtered_train_df, filtered_test_df, OUTPUT_DIR_TRAIN_CROPPED_SPEED_ONLY, OUTPUT_DIR_TEST_CROPPED_SPEED_ONLY, OUTPUT_EXCEL, debug = True)
+    croppedOnlySpeedCNNModel(filtered_train_df, filtered_test_df, OUTPUT_DIR_TRAIN_CROPPED_SPEED_ONLY, OUTPUT_DIR_TEST_CROPPED_SPEED_ONLY, SPEED_ONLY_PRESENT_EXCEL, debug = True)
 
 
 def main(debug):
@@ -174,13 +174,13 @@ def main(debug):
         showDataSamples(DATA_DIR)
     
     # CNN 1 - 4 Classes
-    # runCroppedOnly()
+    runCroppedOnly()
 
     # CNN 2 - 5 Classes -> Speed limits aggregated (as 1 Class)
     # runCroppedOnlyProhibitory()
 
     # CNN 3 - 8 Classes - Speed signs only 
-    runCroppedOnlySpeedSigns() 
+    # runCroppedOnlySpeedSigns() 
 
     # tmr.ShowTime() # End timer.
 

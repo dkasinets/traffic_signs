@@ -13,3 +13,4 @@ output/excel/yolo/
 output/images/
 output/excel/cropped_only
 output/excel/prohibitory_only
+output/excel/speed_only

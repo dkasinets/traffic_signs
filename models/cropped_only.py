@@ -111,6 +111,7 @@ def croppedOnlyCNNModel(train_df, test_df, OUTPUT_DIR_TRAIN, OUTPUT_DIR_TEST, OU
 
     # Evaluate the model on the training set
     # .evaluate returns the loss value & metrics values for the model in test mode.
+    pred_on_val = model.evaluate(validation_generator, verbose = 1, return_dict = True)
     pred_on_train = model.evaluate(train_generator, verbose = 1, return_dict = True)
 
     predictions = model.predict(test_generator)
@@ -128,8 +129,9 @@ def croppedOnlyCNNModel(train_df, test_df, OUTPUT_DIR_TRAIN, OUTPUT_DIR_TEST, OU
     })
 
     pred_accuracy_class_number = accuracy_score(prediction_df["(Predicted) Class Number"], prediction_df["(Actual) Class Number"])
-    print(f"Class Number Accuracy (on Train): {round(pred_on_train['accuracy'], 4) * 100}%")
-    print(f"Class Number Accuracy (on Test): {round(pred_accuracy_class_number, 4) * 100}%")
+    print(f"Class Number Accuracy (on Valid): {round(pred_on_val['accuracy'] * 100, 4)}%")
+    print(f"Class Number Accuracy (on Train): {round(pred_on_train['accuracy'] * 100, 4)}%")
+    print(f"Class Number Accuracy (on Test): {round(pred_accuracy_class_number * 100, 4)}%")
     
     print("\npredictions: ")
     print(prediction_df)
@@ -139,7 +141,8 @@ def croppedOnlyCNNModel(train_df, test_df, OUTPUT_DIR_TRAIN, OUTPUT_DIR_TEST, OU
     train_class_counts_dict = {class_name: count for class_name, count in train_dataset['Class Number'].value_counts().items()}
     test_class_counts_dict = {class_name: count for class_name, count in test_dataset['Class Number'].value_counts().items()}
     runtime = tmr.ShowTime() # End timer.
-    evaluate_info_df = pd.DataFrame({'Evaluation Accuracy (on Train)': [f"{round(pred_on_train['accuracy'] * 100, 4)}%"], 
+    evaluate_info_df = pd.DataFrame({'Evaluation Accuracy (on Valid)': [f"{round(pred_on_val['accuracy'] * 100, 4)}%"], 
+                                     'Evaluation Accuracy (on Train)': [f"{round(pred_on_train['accuracy'] * 100, 4)}%"], 
                                      'Classif. Accuracy (on Test)': [f"{round(pred_accuracy_class_number * 100, 4)}%"],
                                      'Incorrectly classified signs (on Test)': str(prediction_df.shape[0] - int(pred_accuracy_class_number * prediction_df.shape[0])),  
                                      'Total signs (in Train set)': str(train_dataset.shape[0]), 
@@ -376,6 +379,7 @@ def croppedOnlyProhibitoryCNNModel(train_df, test_df, OUTPUT_DIR_TRAIN, OUTPUT_D
 
     # Evaluate the model on the training set
     # .evaluate returns the loss value & metrics values for the model in test mode.
+    pred_on_val = model.evaluate(validation_generator, verbose = 1, return_dict = True)
     pred_on_train = model.evaluate(train_generator, verbose = 1, return_dict = True)
 
     predictions = model.predict(test_generator)
@@ -405,8 +409,9 @@ def croppedOnlyProhibitoryCNNModel(train_df, test_df, OUTPUT_DIR_TRAIN, OUTPUT_D
 
     print("Evaluate\n") 
     pred_accuracy_class_id = accuracy_score(prediction_df["(Predicted) ClassID"], prediction_df["(Actual) ClassID"])
-    print(f"ClassID Accuracy (on Train): {round(pred_on_train['accuracy'], 4) * 100}%")
-    print(f"ClassID Accuracy (on Test): {round(pred_accuracy_class_id, 4) * 100}%")
+    print(f"ClassID Accuracy (on Valid): {round(pred_on_val['accuracy'] * 100, 4) }%")
+    print(f"ClassID Accuracy (on Train): {round(pred_on_train['accuracy'] * 100, 4) }%")
+    print(f"ClassID Accuracy (on Test): {round(pred_accuracy_class_id * 100, 4)}%")
     
     print("\npredictions: ")
     print(prediction_df)
@@ -416,8 +421,9 @@ def croppedOnlyProhibitoryCNNModel(train_df, test_df, OUTPUT_DIR_TRAIN, OUTPUT_D
     train_class_counts_dict = {class_name: count for class_name, count in train_dataset['ClassID'].value_counts().items()}
     test_class_counts_dict = {class_name: count for class_name, count in test_dataset['ClassID'].value_counts().items()}
     runtime = tmr.ShowTime() # End timer.
-    evaluate_info_df = pd.DataFrame({'Evaluation Accuracy (on Train)': [f"{round(pred_on_train['accuracy'], 4) * 100}%"], 
-                                     'Classif. Accuracy (on Test)': [f"{round(pred_accuracy_class_id, 4) * 100}%"], 
+    evaluate_info_df = pd.DataFrame({'Evaluation Accuracy (on Valid)': [f"{round(pred_on_val['accuracy'] * 100, 4)}%"], 
+                                     'Evaluation Accuracy (on Train)': [f"{round(pred_on_train['accuracy'] * 100, 4)}%"], 
+                                     'Classif. Accuracy (on Test)': [f"{round(pred_accuracy_class_id * 100, 4)}%"], 
                                      'Incorrectly classified signs (on Test)': str(prediction_df.shape[0] - int(pred_accuracy_class_id * prediction_df.shape[0])), 
                                      'Total signs (in Train set)': str(train_dataset.shape[0]), 
                                      'Class Counts (Train set)': str(train_class_counts_dict),
@@ -440,6 +446,8 @@ def croppedOnlySpeedCNNModel(train_df, test_df, OUTPUT_DIR_TRAIN, OUTPUT_DIR_TES
     tf.random.set_seed(0) # seed
     random.seed(0)
     np.random.seed(0)
+    tmr = Timer() # Set timer
+    # TODO: Wrap timer around all previous steps (i.e., need to create new folder and file) 
     
     cols = ['Class Number', 'Center in X', 'Center in Y', 'Width', 'Height', 
             'Text Filename', 'Image Filename', 'Class Label', 'leftCol', 'topRow', 
@@ -504,7 +512,6 @@ def croppedOnlySpeedCNNModel(train_df, test_df, OUTPUT_DIR_TRAIN, OUTPUT_DIR_TES
                   metrics = {'class_id': 'accuracy'})
     
     # Train the model
-    # TODO: 10
     epochs = 20
     history = model.fit(train_generator, epochs=epochs, validation_data=validation_generator)
 
@@ -520,6 +527,10 @@ def croppedOnlySpeedCNNModel(train_df, test_df, OUTPUT_DIR_TRAIN, OUTPUT_DIR_TES
         class_mode='other',
         shuffle = False,
     )
+
+    # Evaluate the model on the training set
+    pred_on_val = model.evaluate(validation_generator, verbose = 1, return_dict = True)
+    pred_on_train = model.evaluate(train_generator, verbose = 1, return_dict = True)
 
     predictions = model.predict(test_generator)
     class_id_predictions = predictions
@@ -548,7 +559,9 @@ def croppedOnlySpeedCNNModel(train_df, test_df, OUTPUT_DIR_TRAIN, OUTPUT_DIR_TES
 
     print("Evaluate\n") 
     pred_accuracy_class_id = accuracy_score(prediction_df["(Predicted) ClassID"], prediction_df["(Actual) ClassID"])
-    print(f"ClassID (Accuracy): {round(pred_accuracy_class_id, 4) * 100}%")
+    print(f"ClassID Accuracy (on Valid): {round(pred_on_val['accuracy'] * 100, 4)}%")
+    print(f"ClassID Accuracy (on Train): {round(pred_on_train['accuracy'] * 100, 4)}%")
+    print(f"ClassID Accuracy (on Test): {round(pred_accuracy_class_id * 100, 4)}%")
     
     print("\npredictions: ")
     print(prediction_df)
@@ -557,8 +570,15 @@ def croppedOnlySpeedCNNModel(train_df, test_df, OUTPUT_DIR_TRAIN, OUTPUT_DIR_TES
     # Save the DataFrame to Excel
     train_class_counts_dict = {class_name: count for class_name, count in train_dataset['ClassID'].value_counts().items()}
     test_class_counts_dict = {class_name: count for class_name, count in test_dataset['ClassID'].value_counts().items()}
-    evaluate_info_df = pd.DataFrame({'ClassID (Accuracy)': [f"{round(pred_accuracy_class_id, 4) * 100}%"], 
+    runtime = tmr.ShowTime() # End timer.
+    evaluate_info_df = pd.DataFrame({'Evaluation Accuracy (on Valid)': [f"{round(pred_on_val['accuracy'] * 100, 4)}%"], 
+                                     'Evaluation Accuracy (on Train)': [f"{round(pred_on_train['accuracy'] * 100, 4)}%"], 
+                                     'Classif. Accuracy (on Test)': [f"{round(pred_accuracy_class_id * 100, 4)}%"], 
+                                     'Incorrectly classified signs (on Test)': str(prediction_df.shape[0] - int(pred_accuracy_class_id * prediction_df.shape[0])), 
+                                     'Total signs (in Train set)': str(train_dataset.shape[0]), 
                                      'Class Counts (Train set)': str(train_class_counts_dict),
-                                     'Class Counts (Test set)': str(test_class_counts_dict)})
+                                     'Total signs (in Test set)': str(prediction_df.shape[0]), 
+                                     'Class Counts (Test set)': str(test_class_counts_dict),
+                                     'Runtime': str(runtime)})
     
     writeToExcel(prediction_df, evaluate_info_df, OUTPUT_EXCEL, OUTPUT_DIR_TEST = None, name = "cropped_only_Speed")
