@@ -14,3 +14,5 @@ output/images/
 output/excel/cropped_only
 output/excel/prohibitory_only
 output/excel/speed_only
+models/yolo_detect_signs/runs
+models/yolo_detect_signs/datasets
