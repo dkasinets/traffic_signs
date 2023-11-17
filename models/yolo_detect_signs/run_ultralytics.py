@@ -377,6 +377,27 @@ def draw_box2(ipath, PBOX, output_filepath):
     return image
 
 
+# NOTE: Training notes
+# yolov8x (best model): train_ratio = 0.1, val_ratio = 0.05
+# tried: yolov8x - 74.5% detection, epochs = 12, imgsz = 480
+# tried 2 (runs/train11): yolov8x - 86.0% detection, epochs = 20, imgsz = 640
+# tried 3: yolov8x - 82.9% detection, epochs = 12, imgsz = 800
+# ------------------------------------------------------------
+# yolov8x (best model): train_ratio = 0.2, val_ratio = 0.05
+# Also, data is sorted by 'Class Number', 'Image Height', 'Image Width'
+# tried (runs/train13): yolov8x - 88.8% detection, epochs = 20, imgsz = 800
+# ------------------------------------------------------------
+# yolov8s (more models): train_ratio = 0.45, val_ratio = 0.05
+# tried: yolov8s - 92.6% detection, epochs = 20, imgsz = 1360
+# ------------------------------------------------------------
+# yolov8n (quicker model): train_ratio = 0.45, val_ratio = 0.05
+# tried: yolov8n - 58.9% detection, epochs = 20, imgsz = 480
+# tried 2: yolov8n - 73.6% detection, epochs = 20, imgsz = 640
+# tried 3: yolov8n - 82.8% detection, epochs = 20, imgsz = 800
+# tried 4 (runs/train8): yolov8n - 93.6% detection, epochs = 20, imgsz = 1360
+# ------------------------------------------------------------
+# yolov8n (quicker model): train_ratio = 0.40, val_ratio = 0.1
+# tried 5 (runs/train16): yolov8n - 91.7% detection, epochs = 40, imgsz = 1360
 def YOLOv8Model(trainNew):
     """ 
         Goal: Predict bounding boxes and 4 sign classes. 
@@ -388,26 +409,6 @@ def YOLOv8Model(trainNew):
 
     # Train
     # Command: yolo task=detect mode=train model=yolov8x.pt data=data.yaml epochs=12 imgsz=480
-    # yolov8x (best model): train_ratio = 0.1, val_ratio = 0.05
-    # tried: yolov8x - 74.5% detection, epochs = 12, imgsz = 480
-    # tried 2 (runs/train11): yolov8x - 86.0% detection, epochs = 20, imgsz = 640
-    # tried 3: yolov8x - 82.9% detection, epochs = 12, imgsz = 800
-
-    # yolov8x (best model): train_ratio = 0.2, val_ratio = 0.05
-    # Also, data is sorted by 'Class Number', 'Image Height', 'Image Width'
-    # tried (runs/train13): yolov8x - 88.8% detection, epochs = 20, imgsz = 800
-
-    # yolov8s (more models): train_ratio = 0.45, val_ratio = 0.05
-    # tried: yolov8s - 92.6% detection, epochs = 20, imgsz = 1360
-
-    # yolov8n (quicker model): train_ratio = 0.45, val_ratio = 0.05
-    # tried: yolov8n - 58.9% detection, epochs = 20, imgsz = 480
-    # tried 2: yolov8n - 73.6% detection, epochs = 20, imgsz = 640
-    # tried 3: yolov8n - 82.8% detection, epochs = 20, imgsz = 800
-    # tried 4 (runs/train8): yolov8n - 93.6% detection, epochs = 20, imgsz = 1360
-    
-    # yolov8n (quicker model): train_ratio = 0.40, val_ratio = 0.1
-    # tried 5 (runs/train16): yolov8n - 91.7% detection, epochs = 40, imgsz = 1360
     if trainNew:
         model = YOLO(os.path.join(DETECT_PATH, "yolov8n.pt"))
         model.train(data = os.path.join(DETECT_PATH, 'data.yaml'), epochs = 40, imgsz = 1360, project = RUNS_PATH)
