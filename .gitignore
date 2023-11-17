@@ -18,5 +18,4 @@ data/legacy/
 models/yolo_detect_signs/datasets
 models/yolo_detect_signs/legacy
 /models/yolo_detect_signs/runs/detect/legacy
-/models/yolo_detect_signs/runs/detect/val
 models/legacy
