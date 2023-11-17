@@ -334,7 +334,8 @@ def createYAML():
 def getRecentTrainDir():
     """ Select the train directory after the YOLOv8 model training. """
     immediate_folders = [f for f in os.listdir(RUNS_PATH) if os.path.isdir(os.path.join(RUNS_PATH, f))]
-    max_num = max([int(f.replace('train', '')) for f in immediate_folders if f != 'train'], default = 0)
+    filtered_immediate_folders = [item for item in immediate_folders if 'train' in item]
+    max_num = max([int(f.replace('train', '')) for f in filtered_immediate_folders if f != 'train'], default = 0)
     return f"train{max_num}" if max_num > 0 else "train"
 
 
