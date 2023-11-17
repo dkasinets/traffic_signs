@@ -16,6 +16,5 @@ output/excel/prohibitory_only
 output/excel/speed_only
 models/yolo_detect_signs/runs
 models/yolo_detect_signs/datasets
-data/cropped/
-data/cropped_prohib_only/
-data/cropped_speed_only/
+# Legacy (ignore)
+data/legacy/
