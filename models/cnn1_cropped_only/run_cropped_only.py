@@ -39,9 +39,10 @@ def croppedOnlyCNNModel(train_df, test_df, OUTPUT_DIR_TRAIN, OUTPUT_DIR_TEST, de
     BS, image_size = 64, (128, 128) # batch size; image dimensions required by pretrained model
 
     # Data preprocessing and augmentation
+    VAL_SPLIT = 0.2
     datagen = ImageDataGenerator(
         rescale = 1.0 / 255.0,
-        validation_split = 0.2
+        validation_split = VAL_SPLIT
     )
     train_generator = datagen.flow_from_dataframe(
         dataframe = train_dataset,
@@ -132,7 +133,8 @@ def croppedOnlyCNNModel(train_df, test_df, OUTPUT_DIR_TRAIN, OUTPUT_DIR_TEST, de
     # Save the DataFrame to Excel
     train_class_counts_dict = {class_name: count for class_name, count in train_dataset['Class Number'].value_counts().items()}
     test_class_counts_dict = {class_name: count for class_name, count in test_dataset['Class Number'].value_counts().items()}
-    evaluate_info_df = pd.DataFrame({'Evaluation Accuracy (on Valid)': [f"{round(pred_on_val['accuracy'] * 100, 4)}%"], 
+    evaluate_info_df = pd.DataFrame({'Total signs (in Valid set)': str(int(train_dataset.shape[0] * VAL_SPLIT)), 
+                                     'Evaluation Accuracy (on Valid)': [f"{round(pred_on_val['accuracy'] * 100, 4)}%"], 
                                      'Evaluation Accuracy (on Train)': [f"{round(pred_on_train['accuracy'] * 100, 4)}%"], 
                                      'Classif. Accuracy (on Test)': [f"{round(pred_accuracy_class_number * 100, 4)}%"],
                                      'Incorrectly classified signs (on Test)': str(prediction_df.shape[0] - int(pred_accuracy_class_number * prediction_df.shape[0])),  

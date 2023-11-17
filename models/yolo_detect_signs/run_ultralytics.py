@@ -126,6 +126,19 @@ def getAnnotations():
     return sorted(annotation_paths)
 
 
+def getFilepathsInFolder(relative_path, ext):
+    """ 
+        Return a list of filepaths (of files in a folder), that match file extension (ext). 
+    """ 
+    paths = []
+    for dirname, _, filenames in os.walk(relative_path):
+        for filename in filenames:
+            _, file_ext = os.path.splitext(filename)
+            if file_ext == ext:
+                paths += [(filename)]
+    return paths
+
+
 def splitIntoSetsImproved():
     """ 
         Use original Train dataset of images and .txt annotations.
@@ -412,6 +425,15 @@ def YOLOv8Model(trainNew):
     # Command: yolo task=detect mode=predict model={BEST_PATH0} conf=0.5 source={SOURCE0}
     recent_train_dir = getRecentTrainDir()
     model2 = YOLO(f"{RUNS_PATH}{recent_train_dir}/weights/best.pt")
+
+    # Evaluate 
+    metrics = model2.val(project = RUNS_PATH) # no arguments needed, dataset and settings remembered
+    each_class_dict = {index: round(value, 4) for index, value in enumerate(metrics.box.maps)}
+    model_validation_df = pd.DataFrame({'mAP50-95 (on Valid set)': [f"{round(metrics.box.map, 4)}"], 
+                                        'mAP50 (on Valid set)': [f"{round(metrics.box.map50, 4)}"], 
+                                        'mAP75 (on Valid set)': [f"{round(metrics.box.map75, 4)}"], 
+                                        'mAP50-95 of each class (on Valid set)': [f"{each_class_dict}"]}) 
+    
     results = model2.predict(SOURCE0, conf = 0.5)
     print(f"results length: {len(results)}")
 
@@ -457,7 +479,7 @@ def YOLOv8Model(trainNew):
 
     print("\nTotal test length (Full images):", len(results), ". unable_to_predict (Full images) length:", len(unable_to_predict))
 
-    return PBOX, unable_to_predict
+    return PBOX, model_validation_df, unable_to_predict
 
 
 def runYOLO():
@@ -481,24 +503,31 @@ def runYOLO():
 
     print("Run YOLOv8 model (using Full images)...\n")
     # unable_to_predict - a list of paths (that a Model can't predict)
-    PBOX, unable_to_predict = YOLOv8Model(trainNew = False)
+    PBOX, model_validation_df, unable_to_predict = YOLOv8Model(trainNew = False)
 
-    # Get test dataset actual labels
-    test_paths = []
-    for dirname, _, filenames in os.walk(TEST_PATH):
-        for filename in filenames:
-            _, file_ext = os.path.splitext(filename)
-            if file_ext == ".txt":
-                test_paths += [(filename)]
+    # Get paths of test dataset
+    test_paths = getFilepathsInFolder(TEST_PATH, ".txt")
+
+    # Get paths of train/valid set 
+    train_paths = getFilepathsInFolder(TRAIN_PATH, ".txt")
+    valid_paths = getFilepathsInFolder(VALID_PATH, ".txt")
     
     labels = pd.read_csv(f"{ROOT_DIR}/data/classes.names", header = None, names = ["Class labels"])
     print(labels)
 
+    # Get sign labels of test dataset
     tDS = getTestLabelsFromTxtFiles(labels, TEST_PATH, test_paths)
     selected_tDS = tDS[['(actual) class', 'Center in X', 'Center in Y', 'Width', 'Height', 
                         "Image Filename", 'Image Filename (with index)']]
     sorted_selected_tDS = selected_tDS.sort_values(by = 'Image Filename (with index)').reset_index(drop=True)
     print(f"sorted_selected_tDS (length: {len(sorted_selected_tDS)})", sorted_selected_tDS)
+
+    # Get sign labels of train/valid set 
+    train_DS = getTestLabelsFromTxtFiles(labels, TRAIN_PATH, train_paths)
+    valid_DS = getTestLabelsFromTxtFiles(labels, VALID_PATH, valid_paths)
+
+    # Get count of total signs in train/valid/test sets 
+    train_length, valid_length, test_length = len(train_DS), len(valid_DS), len(tDS)
 
     # how = 'left' - to get all predicted values, and actual values.
     # how = 'outer - to get all predicted values, and actual values. (We want to know mis-predicted, and under-predicted).
@@ -546,7 +575,9 @@ def runYOLO():
     
     # Stats
     runtime = tmr.ShowTime() # End timer.
-    evaluate_info_df = pd.DataFrame({'Total signs (in Test)': [f"{len(result)}"], 
+    evaluate_info_df = pd.DataFrame({'Total signs (in Train set)': [f"{train_length}"], 
+                                     'Total signs (in Valid set)': [f"{valid_length}"], 
+                                     'Total signs (in Test set)': [f"{len(result)}"], 
                                      'Detected signs (without over-predicted & under-predicted)': str(len(rows_with_all_values)), 
                                      'Detection Accuracy': str(f"{detection_accuracy}%"),
                                      'Overall Classif. Accuracy (Formula: (detected # * accuracy) / total #)': str(f"{overall_accuracy}%"), 
@@ -554,6 +585,10 @@ def runYOLO():
                                      'Incorrectly detected signs (over-predicted & under-predicted)': str(len(result_with_nan_or_empty)), 
                                      'Under-predicted signs': str(len(underpredicted)), 
                                      'Over-predicted signs': str(len(overpredicted)),
+                                     'mAP50-95 (on Valid set)': str(model_validation_df['mAP50-95 (on Valid set)'][0]),
+                                     'mAP50 (on Valid set)': str(model_validation_df['mAP50 (on Valid set)'][0]),
+                                     'mAP75 (on Valid set)': str(model_validation_df['mAP75 (on Valid set)'][0]),
+                                     'mAP50-95 of each class (on Valid set)': str(model_validation_df['mAP50-95 of each class (on Valid set)'][0]),
                                      'Runtime': str(runtime)})
     
     writeToExcel(rows_with_all_values, evaluate_info_df, YOLO_PRESENT_EXCEL, formatted_date, OUTPUT_DIR_TEST = None, name = "yolo_results")
