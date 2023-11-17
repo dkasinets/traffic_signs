@@ -18,3 +18,5 @@ models/yolo_detect_signs/runs
 models/yolo_detect_signs/datasets
 # Legacy (ignore)
 data/legacy/
+models/yolo_detect_signs/legacy/
+models/legacy
