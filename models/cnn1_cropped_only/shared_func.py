@@ -10,6 +10,7 @@ from sklearn.metrics import accuracy_score
 import time
 from openpyxl import Workbook
 from datetime import datetime
+import shutil
 
 
 def showDataSamples(directory_path):
@@ -101,6 +102,9 @@ def cropImagesAndStoreRoadSigns(df, image_dir, output_dir):
         store new images of road signs 
         into the new directory.
     """
+    # Delete/ re-create valid set
+    if os.path.exists(output_dir):
+        shutil.rmtree(output_dir)
     # Create the output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
 

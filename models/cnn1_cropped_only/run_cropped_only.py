@@ -6,6 +6,7 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras import layers
 import random
 from sklearn.metrics import accuracy_score
+from sklearn.model_selection import train_test_split
 
 # Custom imports
 from shared_func import showDataSamples, getTrainData, getTestData, cropImagesAndStoreRoadSigns, getImageAndSignDimensions, writeToExcel, Timer
@@ -15,13 +16,16 @@ from shared_func import showDataSamples, getTrainData, getTestData, cropImagesAn
 ROOT_DIR = "/Users/Kasinets/Dropbox/Mac/Desktop/SP22_JHU/Rodriguez/TRAFFIC_SIGNS/traffic_signs"
 DATA_DIR = f"{ROOT_DIR}/data/ts/ts/"
 # train/test cropped
-OUTPUT_DIR_TRAIN_CROPPED = f"{ROOT_DIR}/data/train_cropped/images/"
-OUTPUT_DIR_TEST_CROPPED = f"{ROOT_DIR}/data/test_cropped/images/"
+OUTPUT_DIR_TRAIN_CROPPED = f"{ROOT_DIR}/data/cropped/train/images/"
+OUTPUT_DIR_TEST_CROPPED = f"{ROOT_DIR}/data/cropped/test/images/"
+OUTPUT_DIR_VALID_CROPPED = f"{ROOT_DIR}/data/cropped/valid/images/"
 # Cropped Only (CNN #1)
 CROPPED_ONLY_PRESENT_EXCEL = f'{ROOT_DIR}/output/excel/cropped_only/'
+# Validation set split
+VAL_SPLIT = 0.2
 
 
-def croppedOnlyCNNModel(train_df, test_df, OUTPUT_DIR_TRAIN, OUTPUT_DIR_TEST, debug = False):
+def croppedOnlyCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_TRAIN, OUTPUT_DIR_TEST, OUTPUT_DIR_VALID, debug = False):
     """
         Goal: Predict 4 Classes.
         Create a CNN model for class prediction. 
@@ -34,17 +38,14 @@ def croppedOnlyCNNModel(train_df, test_df, OUTPUT_DIR_TRAIN, OUTPUT_DIR_TEST, de
     
     train_dataset = train_df[['Class Number', 'Center in X', 'Center in Y', 'Width', 'Height', 'Image Filename', 'Image Height', 'Image Width', 'Sign Height', 'Sign Width']].copy()
     test_dataset = test_df[['Class Number', 'Center in X', 'Center in Y', 'Width', 'Height', 'Image Filename', 'Image Height', 'Image Width', 'Sign Height', 'Sign Width']].copy()
+    valid_dataset = valid_df[['Class Number', 'Center in X', 'Center in Y', 'Width', 'Height', 'Image Filename', 'Image Height', 'Image Width', 'Sign Height', 'Sign Width']].copy()
 
-    tDIR, sDIR = OUTPUT_DIR_TRAIN, OUTPUT_DIR_TEST
+    tDIR, sDIR, vDIR = OUTPUT_DIR_TRAIN, OUTPUT_DIR_TEST, OUTPUT_DIR_VALID
     BS, image_size = 64, (128, 128) # batch size; image dimensions required by pretrained model
 
     # Data preprocessing and augmentation
-    VAL_SPLIT = 0.2
-    datagen = ImageDataGenerator(
-        rescale = 1.0 / 255.0,
-        validation_split = VAL_SPLIT
-    )
-    train_generator = datagen.flow_from_dataframe(
+    train_datagen = ImageDataGenerator(rescale = 1.0 / 255.0)
+    train_generator = train_datagen.flow_from_dataframe(
         dataframe = train_dataset,
         directory = tDIR,
         x_col = "Image Filename", # Column containing image filenames
@@ -52,17 +53,20 @@ def croppedOnlyCNNModel(train_df, test_df, OUTPUT_DIR_TRAIN, OUTPUT_DIR_TEST, de
         target_size = image_size,
         batch_size = BS,
         class_mode = 'other',
-        subset = 'training'
+        shuffle = True,
+        # subset = 'training'
     )
-    validation_generator = datagen.flow_from_dataframe(
-        dataframe = train_dataset,
-        directory = tDIR,
+    valid_datagen = ImageDataGenerator(rescale = 1.0 / 255.0)
+    validation_generator = valid_datagen.flow_from_dataframe(
+        dataframe = valid_dataset,
+        directory = vDIR,
         x_col = "Image Filename",
         y_col = ["Class Number"],
         target_size = image_size,
         batch_size = BS,
         class_mode='other',
-        subset='validation'
+        shuffle = True,
+        # subset='validation'
     )
 
     # Define the CNN model
@@ -133,15 +137,17 @@ def croppedOnlyCNNModel(train_df, test_df, OUTPUT_DIR_TRAIN, OUTPUT_DIR_TEST, de
     # Save the DataFrame to Excel
     train_class_counts_dict = {class_name: count for class_name, count in train_dataset['Class Number'].value_counts().items()}
     test_class_counts_dict = {class_name: count for class_name, count in test_dataset['Class Number'].value_counts().items()}
-    evaluate_info_df = pd.DataFrame({'Total signs (in Valid set)': str(int(train_dataset.shape[0] * VAL_SPLIT)), 
-                                     'Evaluation Accuracy (on Valid)': [f"{round(pred_on_val['accuracy'] * 100, 4)}%"], 
+    valid_class_counts_dict = {class_name: count for class_name, count in valid_dataset['Class Number'].value_counts().items()}
+    evaluate_info_df = pd.DataFrame({'Evaluation Accuracy (on Valid)': [f"{round(pred_on_val['accuracy'] * 100, 4)}%"], 
                                      'Evaluation Accuracy (on Train)': [f"{round(pred_on_train['accuracy'] * 100, 4)}%"], 
                                      'Classif. Accuracy (on Test)': [f"{round(pred_accuracy_class_number * 100, 4)}%"],
                                      'Incorrectly classified signs (on Test)': str(prediction_df.shape[0] - int(pred_accuracy_class_number * prediction_df.shape[0])),  
                                      'Total signs (in Train set)': str(train_dataset.shape[0]), 
                                      'Class Counts (Train set)': str(train_class_counts_dict), 
                                      'Total signs (in Test set)': str(prediction_df.shape[0]), 
-                                     'Class Counts (Test set)': str(test_class_counts_dict)})
+                                     'Class Counts (Test set)': str(test_class_counts_dict),
+                                     'Total signs (in Valid set)': str(valid_dataset.shape[0]),
+                                     'Class Counts (Valid set)': str(valid_class_counts_dict)})
     return prediction_df, evaluate_info_df
 
 
@@ -149,24 +155,36 @@ def runCroppedOnly():
     """ Baseline Class Prediction CNN Model using Cropped images """
     tmr = Timer() # Set timer
 
-    print("Get class labels...\n")
+    print("\nGet class labels...")
     labels = pd.read_csv(f"{ROOT_DIR}/data/classes.names", header = None, names = ["Class labels"])
     print(labels)
 
-    print("Get train & test...\n")
+    print("\nGet train & test...")
     train_df = getTrainData(labels, ROOT_DIR, DATA_DIR)
     test_df = getTestData(labels, ROOT_DIR, DATA_DIR)
 
-    print("Separate into cropped train/test subfolders...\n")
+    print("\nSplit train into train and valid")
+    print("Train set shape (before):", train_df.shape[0])
+    X = train_df.drop('Class Number', axis=1) # Features
+    y = train_df['Class Number'] # Target variable
+    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size = VAL_SPLIT, stratify = y, random_state = 42)
+    train_df = pd.concat([X_train, y_train], axis = 1)
+    val_df = pd.concat([X_val, y_val], axis = 1)
+    print("Train set shape (after):", train_df.shape[0])
+    print("Validation set shape (after):", val_df.shape[0])
+
+    print("\nSeparate into cropped train/test subfolders...")
     cropImagesAndStoreRoadSigns(df = train_df, image_dir = DATA_DIR, output_dir = OUTPUT_DIR_TRAIN_CROPPED)
     cropImagesAndStoreRoadSigns(df = test_df, image_dir = DATA_DIR, output_dir = OUTPUT_DIR_TEST_CROPPED)
+    cropImagesAndStoreRoadSigns(df = val_df, image_dir = DATA_DIR, output_dir = OUTPUT_DIR_VALID_CROPPED)
 
-    print("Calculate image dimensions...\n")
+    print("\nCalculate image dimensions...")
     train_df[['Image Height', 'Image Width', 'Sign Height', 'Sign Width']] = train_df.apply(lambda row: pd.Series(getImageAndSignDimensions(row['Image Filename'], row['Center in X'], row['Center in Y'], row['Width'], row['Height'], OUTPUT_DIR_TRAIN_CROPPED)), axis = 1)
     test_df[['Image Height', 'Image Width', 'Sign Height', 'Sign Width']] = test_df.apply(lambda row: pd.Series(getImageAndSignDimensions(row['Image Filename'], row['Center in X'], row['Center in Y'], row['Width'], row['Height'], OUTPUT_DIR_TEST_CROPPED)), axis = 1)
+    val_df[['Image Height', 'Image Width', 'Sign Height', 'Sign Width']] = val_df.apply(lambda row: pd.Series(getImageAndSignDimensions(row['Image Filename'], row['Center in X'], row['Center in Y'], row['Width'], row['Height'], OUTPUT_DIR_VALID_CROPPED)), axis = 1)
 
-    print("Run CNN model (using Cropped images)...\n")
-    prediction_df, evaluate_info_df = croppedOnlyCNNModel(train_df, test_df, OUTPUT_DIR_TRAIN_CROPPED, OUTPUT_DIR_TEST_CROPPED, debug = True)
+    print("\nRun CNN model (using Cropped images)...")
+    prediction_df, evaluate_info_df = croppedOnlyCNNModel(train_df, test_df, val_df, OUTPUT_DIR_TRAIN_CROPPED, OUTPUT_DIR_TEST_CROPPED, OUTPUT_DIR_VALID_CROPPED, debug = True)
     runtime = tmr.ShowTime() # End timer.
     evaluate_info_df['runtime'] = str(runtime)
 
