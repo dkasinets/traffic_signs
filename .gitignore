@@ -4,10 +4,6 @@ __pycache__/
 *.py[cod]
 *.cache
 pipeline
-utils/detect/datasets/
-utils/detect/runs/
-data/test_cropped_speed_only/
-data/train_cropped_speed_only/
 # Legacy (ignore)
 data/legacy/
 models/yolo_detect_signs/datasets
