@@ -1,3 +1,5 @@
+# Description 
+- Enhancing image classification (of traffic signs) through data fusion and ensembled CNNs.
 # About this Dataset for Detection Tasks 
 - Data is taken from [Traffic Signs Dataset in YOLO format](https://www.kaggle.com/datasets/valentynsichkar/traffic-signs-dataset-in-yolo-format).
 - If you want to see All of the raw data used in this project, you can find it [here](https://www.dropbox.com/scl/fi/msnsyrtr2v5nf0xra3z95/raw_data.zip?rlkey=8rxvlfdt91mc8hg0u7o2xazon&dl=0).
