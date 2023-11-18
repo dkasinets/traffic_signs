@@ -8,7 +8,6 @@ utils/detect/datasets/
 utils/detect/runs/
 data/test_cropped_speed_only/
 data/train_cropped_speed_only/
-output/images/
 # Legacy (ignore)
 data/legacy/
 models/yolo_detect_signs/datasets
@@ -20,3 +19,4 @@ output/excel/cropped_only/legacy
 output/excel/prohibitory_only/legacy
 output/excel/speed_only/legacy
 output/excel/yolo/legacy
+output/images/yolo/legacy
