@@ -9,8 +9,8 @@ from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 
-from shared_func import showDataSamples, cropImagesAndStoreRoadSigns, getImageAndSignDimensions, writeToExcel, Timer
-from shared_func import getLabeledData
+from models.cnn2_prohib_only.shared_func import showDataSamples, cropImagesAndStoreRoadSigns, getImageAndSignDimensions, writeToExcel, Timer
+from models.cnn2_prohib_only.shared_func import getLabeledData
 
 
 # Global Variables

@@ -9,7 +9,7 @@ from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 
 # Custom imports
-from shared_func import showDataSamples, getTrainData, getTestData, cropImagesAndStoreRoadSigns, getImageAndSignDimensions, writeToExcel, Timer
+from models.cnn1_cropped_only.shared_func import showDataSamples, getTrainData, getTestData, cropImagesAndStoreRoadSigns, getImageAndSignDimensions, writeToExcel, Timer
 
 
 # Global Variables

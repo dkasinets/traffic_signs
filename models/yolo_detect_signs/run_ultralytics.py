@@ -17,7 +17,7 @@ from sklearn.metrics import accuracy_score
 from openpyxl import Workbook
 from datetime import datetime
 import time
-from ultralytics_helper import getLabeledData, getImageDimensions
+from models.yolo_detect_signs.ultralytics_helper import getLabeledData, getImageDimensions
 ult.checks()
 
 
