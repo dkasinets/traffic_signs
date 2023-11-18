@@ -8,9 +8,10 @@ import random
 from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
+from imblearn.over_sampling import RandomOverSampler
 
 from models.cnn2_prohib_only.shared_func import showDataSamples, cropImagesAndStoreRoadSigns, getImageAndSignDimensions, writeToExcel, Timer
-from models.cnn2_prohib_only.shared_func import getLabeledData
+from models.cnn2_prohib_only.shared_func import getLabeledData, resolve_duplicate_filenames
 
 
 # Global Variables
@@ -180,7 +181,7 @@ def croppedOnlyProhibitoryCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_TRAIN
     return prediction_df, evaluate_info_df
 
 
-def runCroppedOnlyProhibitory():
+def runCroppedOnlyProhibitory(oversample = False):
     """ Within Class (prohibitory) Prediction CNN Model using Cropped images """
     tmr = Timer() # Set timer
 
@@ -195,6 +196,28 @@ def runCroppedOnlyProhibitory():
 
     filtered_test_df["ClassIdDesc"] = filtered_test_df["ClassIdDesc"].replace([f"speed limit {x}" for x in [20, 30, 50, 60, 70, 80, 100, 120]], "speed limit")
     filtered_test_df["ClassID"] = filtered_test_df["ClassID"].replace([0, 1, 2, 3, 4, 5, 7, 8], 999)
+
+    print("\nApply over-sampling...")
+    if oversample:
+        print("\nClass distribution (Before over-sampling): ")
+        class_dist_before = {class_name: count for class_name, count in filtered_train_df['ClassID'].value_counts().items()}
+        print(class_dist_before)
+        print(filtered_train_df)
+
+        # Oversample train dataset 
+        # NOTE: It produces duplicate filenames
+        ros = RandomOverSampler(random_state = 0)
+        X = filtered_train_df.drop('ClassID', axis=1) # Features
+        y = filtered_train_df['ClassID'] # Target variable
+        X_resampled, y_resampled = ros.fit_resample(X, y)
+        filtered_train_df = pd.concat([X_resampled, y_resampled], axis = 1)
+        # Resolve duplicate filenames
+        filtered_train_df = resolve_duplicate_filenames(filtered_train_df, 'Image Filename')
+
+        class_dist_after = {class_name: count for class_name, count in filtered_train_df['ClassID'].value_counts().items()}
+        print("\nClass distribution (After over-sampling): ")
+        print(class_dist_after)
+        print(filtered_train_df)
 
     print("\nSplit train into train and valid")
     print("Train set shape (before):", filtered_train_df.shape[0])

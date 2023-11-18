@@ -45,6 +45,7 @@ https://docs.continuum.io/free/anaconda/install/
 - `conda install -c conda-forge ultralytics`
 - `conda install pytorch torchvision -c pytorch` 
 - `conda install -c anaconda openpyxl`
+- `conda install -c conda-forge imbalanced-learn`
 
 ## Inside a virtual environment, run the main code:
 - `python main.py`

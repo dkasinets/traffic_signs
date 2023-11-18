@@ -110,7 +110,7 @@ def cropImagesAndStoreRoadSigns(df, image_dir, output_dir):
 
     # Loop through the DataFrame
     for index, row in df.iterrows():
-        image_filename = os.path.join(image_dir, f"{row['Image Filename'][:-6]}.jpg")
+        image_filename = os.path.join(image_dir, f"{os.path.splitext(row['Text Filename'])[0]}.jpg")
         img = cv.imread(image_filename)
 
         # Extract bounding box coordinates
@@ -260,3 +260,23 @@ def getLabeledData(root_dir, data_dir):
     test_df_appended = test_df_appended.drop(columns = ['ImgNo', 'Class labels', 'ClassLabels'])
 
     return train_df_appended, test_df_appended
+
+
+def resolve_duplicate_filenames(df, filename_column):
+    """ 
+        Given a DataFrame with duplicate filenames in a column (e.g., after Over-sampling),
+        we want to make filenames unique. 
+    """
+    counts = {}
+    new_filenames = []
+    for f in df[filename_column]:
+        if f in counts:
+            counts[f] += 1
+            file_name, file_extension = os.path.splitext(f)
+            new_filename = f"{file_name}_{counts[f]}{file_extension}"
+        else:
+            counts[f] = 0
+            new_filename = f
+        new_filenames.append(new_filename)
+    df[filename_column] = new_filenames
+    return df

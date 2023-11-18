@@ -26,17 +26,17 @@ def main(debug):
 
     # CNN #1
     # Number of classes: 4
-    runCroppedOnly()
+    runCroppedOnly(oversample = True)
 
     # CNN #2
     # Number of classes: 5 
     # NOTE: Speed signs (with different speed limits) are aggregated as one class of speed sign (i.e., ClassID = 999).
-    runCroppedOnlyProhibitory()
+    runCroppedOnlyProhibitory(oversample = True)
 
     # CNN #3
     # Number of classes: 8 
     # NOTE: Here, we predict speed signs only.
-    runCroppedOnlySpeedSigns() 
+    runCroppedOnlySpeedSigns(oversample = False) 
 
     tmr.ShowTime() # End timer.
 

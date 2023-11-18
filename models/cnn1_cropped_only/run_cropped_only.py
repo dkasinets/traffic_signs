@@ -7,9 +7,11 @@ from tensorflow.keras import layers
 import random
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
+from imblearn.over_sampling import RandomOverSampler
 
 # Custom imports
 from models.cnn1_cropped_only.shared_func import showDataSamples, getTrainData, getTestData, cropImagesAndStoreRoadSigns, getImageAndSignDimensions, writeToExcel, Timer
+from models.cnn1_cropped_only.shared_func import resolve_duplicate_filenames
 
 
 # Global Variables
@@ -151,7 +153,7 @@ def croppedOnlyCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_TRAIN, OUTPUT_DI
     return prediction_df, evaluate_info_df
 
 
-def runCroppedOnly():
+def runCroppedOnly(oversample = False):
     """ Baseline Class Prediction CNN Model using Cropped images """
     tmr = Timer() # Set timer
 
@@ -163,6 +165,28 @@ def runCroppedOnly():
     train_df = getTrainData(labels, ROOT_DIR, DATA_DIR)
     test_df = getTestData(labels, ROOT_DIR, DATA_DIR)
 
+    print("\nApply over-sampling...")
+    if oversample:
+        print("\nClass distribution (Before over-sampling): ")
+        class_dist_before = {class_name: count for class_name, count in train_df['Class Number'].value_counts().items()}
+        print(class_dist_before)
+        print(train_df)
+
+        # Oversample train dataset 
+        # NOTE: It produces duplicate filenames
+        ros = RandomOverSampler(random_state = 0)
+        X = train_df.drop('Class Number', axis=1) # Features
+        y = train_df['Class Number'] # Target variable
+        X_resampled, y_resampled = ros.fit_resample(X, y)
+        train_df = pd.concat([X_resampled, y_resampled], axis = 1)
+        # Resolve duplicate filenames
+        train_df = resolve_duplicate_filenames(train_df, 'Image Filename')
+
+        class_dist_after = {class_name: count for class_name, count in train_df['Class Number'].value_counts().items()}
+        print("\nClass distribution (After over-sampling): ")
+        print(class_dist_after)
+        print(train_df)
+    
     print("\nSplit train into train and valid")
     print("Train set shape (before):", train_df.shape[0])
     X = train_df.drop('Class Number', axis=1) # Features
