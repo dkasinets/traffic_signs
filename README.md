@@ -1,6 +1,6 @@
 # Description 
 - Enhancing image classification (of traffic signs) through data fusion and ensembled CNNs.
-## Pipeline: YOLO <div>&rarr</div> CNN1 <div>&rarr</div> CNN2 <div>&rarr</div> CNN3
+## Pipeline: YOLO → CNN1 → CNN2 → CNN3
 - YOLO - Detect road signs: Detect bounding box coordinates (& classify into: prohibitory (ClassID: 0), danger (ClassID: 1), mandatory (ClassID: 2), other (ClassID: 3))
 - CNN1 (Cropped only) - Classify into: prohibitory (ClassID: 0), danger (ClassID: 1), mandatory (ClassID: 2), other (ClassID: 3)
 - CNN2 (Prohibitory signs only) - Classify into: any speed sign (ClassID: 999), no overtaking (trucks) (ClassID: 10), no overtaking (ClassID: 9), no traffic both ways (ClassID: 15), no trucks (ClassID: 16)
