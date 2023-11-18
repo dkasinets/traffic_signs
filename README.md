@@ -1,10 +1,10 @@
 # Description 
 - Enhancing image classification (of traffic signs) through data fusion and ensembled CNNs.
 ## Pipeline: YOLO → CNN1 → CNN2 → CNN3
-- YOLO - Detect road signs: Detect bounding box coordinates (& classify into: prohibitory (ClassID: 0), danger (ClassID: 1), mandatory (ClassID: 2), other (ClassID: 3))
-- CNN1 (Cropped only) - Classify into: prohibitory (ClassID: 0), danger (ClassID: 1), mandatory (ClassID: 2), other (ClassID: 3)
-- CNN2 (Prohibitory signs only) - Classify into: any speed sign (ClassID: 999), no overtaking (trucks) (ClassID: 10), no overtaking (ClassID: 9), no traffic both ways (ClassID: 15), no trucks (ClassID: 16)
-- CNN3 (Speed signs only) - Classify into: speed limit 50 (ClassID: 2), speed limit 70 (ClassID: 4), speed limit 30 (ClassID: 1), speed limit 120 (ClassID: 8), speed limit 80 (ClassID: 5), speed limit 100 (ClassID: 7), speed limit 60 (ClassID: 3), speed limit 20 (ClassID: 0)
+- YOLO - Detect road signs: Detect bounding box coordinates (& classify into: `prohibitory` (ClassID: 0), `danger` (ClassID: 1), `mandatory` (ClassID: 2), `other` (ClassID: 3))
+- CNN1 (Cropped only) - Classify into: `prohibitory` (ClassID: 0), `danger` (ClassID: 1), `mandatory` (ClassID: 2), `other` (ClassID: 3)
+- CNN2 (Prohibitory signs only) - Classify into: `any speed sign` (ClassID: 999), `no overtaking (trucks)` (ClassID: 10), `no overtaking` (ClassID: 9), `no traffic both ways` (ClassID: 15), `no trucks` (ClassID: 16)
+- CNN3 (Speed signs only) - Classify into: `speed limit 20` (ClassID: 0), `speed limit 30` (ClassID: 1), `speed limit 50` (ClassID: 2), `speed limit 60` (ClassID: 3), `speed limit 70` (ClassID: 4), `speed limit 80` (ClassID: 5), `speed limit 100` (ClassID: 7), `speed limit 120` (ClassID: 8)
 # About this Dataset for Detection Tasks 
 - Data is taken from [Traffic Signs Dataset in YOLO format](https://www.kaggle.com/datasets/valentynsichkar/traffic-signs-dataset-in-yolo-format).
 - If you want to see All of the raw data used in this project, you can find it [here](https://www.dropbox.com/scl/fi/msnsyrtr2v5nf0xra3z95/raw_data.zip?rlkey=8rxvlfdt91mc8hg0u7o2xazon&dl=0).
