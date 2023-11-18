@@ -35,8 +35,9 @@ RUNS_PATH = f'{DETECT_PATH}runs/detect/'
 YOLO_PRESENT_EXCEL = f'{ROOT_DIR}/output/excel/yolo/'
 YOLO_PRESENT_IMG = f'{ROOT_DIR}/output/images/yolo/'
 # train/test cropped
-OUTPUT_DIR_TRAIN_CROPPED = f"{ROOT_DIR}/data/train_cropped/images/"
-OUTPUT_DIR_TEST_CROPPED = f"{ROOT_DIR}/data/test_cropped/images/"
+OUTPUT_DIR_TRAIN_CROPPED = f"{ROOT_DIR}/data/cropped/train/images/"
+OUTPUT_DIR_TEST_CROPPED = f"{ROOT_DIR}/data/cropped/test/images/"
+OUTPUT_DIR_VALID_CROPPED = f"{ROOT_DIR}/data/cropped/valid/images/"
 
 
 class Timer():
@@ -141,6 +142,7 @@ def getFilepathsInFolder(relative_path, ext):
 
 def splitIntoSetsImproved():
     """ 
+        IMPORTANT: The function assumes that cropped train/test/valid datasets already exist (from previous steps). 
         Use original Train dataset of images and .txt annotations.
         Use 10% (of original Train) for Yolo train, and 90% for YOLO test. 
         Example: 
@@ -148,11 +150,11 @@ def splitIntoSetsImproved():
             (i.e., 630 * 10% = 63 image and annotations).
     """
     random.seed(42)
+    # orig_train_df - full train set (before we take 20% for validation)
     orig_train_df, orig_test_df = getLabeledData(root_dir = ROOT_DIR, data_dir = DATA_DIR)
 
     print("Calculate image dimensions...\n")
-    orig_train_df[['Image Height', 'Image Width']] = orig_train_df.apply(lambda row: pd.Series(getImageDimensions(row['Image Filename'], row['Center in X'], row['Center in Y'], row['Width'], row['Height'], OUTPUT_DIR_TRAIN_CROPPED)), axis = 1)
-
+    orig_train_df[['Image Height', 'Image Width']] = orig_train_df.apply(lambda row: pd.Series(getImageDimensions(row['Image Filename'], row['Center in X'], row['Center in Y'], row['Width'], row['Height'], OUTPUT_DIR_TRAIN_CROPPED, OUTPUT_DIR_VALID_CROPPED)), axis = 1)
     print("\n orig_train_df: ")
     # Sort by multiple columns (class & image dimensions) - We want to get diverse image dimensions in Yolo Train set
     # Our focus is on Traffic Sign detection.
@@ -162,9 +164,9 @@ def splitIntoSetsImproved():
     sorted_filenames = orig_train_df["Text Filename"].unique()
     print(f"\nsorted_filenames: {len(sorted_filenames)}")
 
-    # Create Train Set & Validation Set for Yolo - 50% of original set (40% for train, 10% for validation)
-    train_ratio = 0.4
-    val_ratio = 0.1
+    # Create Train Set & Validation Set for Yolo - 50% of original set (45% for train, 5% for validation)
+    train_ratio = 0.45
+    val_ratio = 0.05
     total_ratio_of_orig = train_ratio + val_ratio
     total_rows = len(sorted_filenames)
     num_rows_to_select = int(total_ratio_of_orig * total_rows)
@@ -409,10 +411,10 @@ def YOLOv8Model(trainNew):
     print(f"class_map: {class_map}")
 
     # Train
-    # Command: yolo task=detect mode=train model=yolov8x.pt data=data.yaml epochs=12 imgsz=480
+    # Example command: yolo task=detect mode=train model=yolov8x.pt data=data.yaml epochs=12 imgsz=480
     if trainNew:
         model = YOLO(os.path.join(DETECT_PATH, "yolov8n.pt"))
-        model.train(data = os.path.join(DETECT_PATH, 'data.yaml'), epochs = 40, imgsz = 1360, project = RUNS_PATH)
+        model.train(data = os.path.join(DETECT_PATH, 'data.yaml'), epochs = 20, imgsz = 1360, project = RUNS_PATH)
 
     # Predict 
     ppaths = []
@@ -505,7 +507,7 @@ def runYOLO():
 
     print("Run YOLOv8 model (using Full images)...\n")
     # unable_to_predict - a list of paths (that a Model can't predict)
-    PBOX, model_validation_df, unable_to_predict = YOLOv8Model(trainNew = False)
+    PBOX, model_validation_df, unable_to_predict = YOLOv8Model(trainNew = True)
 
     # Get paths of test dataset
     test_paths = getFilepathsInFolder(TEST_PATH, ".txt")

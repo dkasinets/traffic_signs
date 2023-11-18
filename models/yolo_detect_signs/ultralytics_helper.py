@@ -130,12 +130,19 @@ def getLabeledData(root_dir, data_dir):
     return train_df_appended, test_df_appended
 
 
-def getImageDimensions(filename, center_in_x, center_in_y, width, height, image_dir):
+def getImageDimensions(filename, center_in_x, center_in_y, width, height, image_dir_train, image_dir_valid):
     """
         Get height, and width of an image.
+        Look for images in both train and valid sets.
     """
+    DIR = ""
+    if os.path.exists(os.path.join(image_dir_train, filename)):
+        DIR = image_dir_train
+    elif os.path.exists(os.path.join(image_dir_valid, filename)): 
+        DIR = image_dir_valid
+
     try:
-        image_filename = os.path.join(image_dir, filename)
+        image_filename = os.path.join(DIR, filename)
         img = cv.imread(image_filename)
         img_height, img_width, _ = img.shape # Get height and width
 
