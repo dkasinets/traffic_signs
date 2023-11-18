@@ -15,7 +15,8 @@
 - Danger category consists of following Traffic Sings: `priority at next intersection`, `danger`, `bend left`, `bend right`, `bend`, `uneven road`, `slippery road`, `road narrows`, `construction`, `traffic signal`, `pedestrian crossing`, `school crossing`, `cycles crossing`, `snow`, `animals`.
 - Mandatory category consists of following Traffic Sings: `go right`, `go left`, `go straight`, `go right or straight`,` go left or straight`, `keep right`, `keep left`, `roundabout`.
 - Other category consists of following Traffic Sings: `restriction ends`, `priority road`, `give way`, `stop`, `no entry`.
-- Legacy: To train in the Darknet framework, the original dataset is accompanied by the following files (i.e., we use some of them for other purposes):
+## Legacy
+- To train in the Darknet framework, the original dataset is accompanied by the following files (i.e., we use some of them for other purposes):
 - `ts_data.data`, `classes.names`, `train.txt`, `test.txt`, `yolov3_ts_test.cfg`, `yolov3_ts_train.cfg`.
 ## Acknowledgements
 - Initial data is German Traffic Sign Detection Benchmark (GTDRB).
