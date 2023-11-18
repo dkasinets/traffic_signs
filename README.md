@@ -1,5 +1,6 @@
 # About this Dataset for Detection Tasks 
 - Data is taken from [Traffic Signs Dataset in YOLO format](https://www.kaggle.com/datasets/valentynsichkar/traffic-signs-dataset-in-yolo-format).
+- If you want to see All of the raw data used in this project, you can find it [here](https://www.dropbox.com/scl/fi/msnsyrtr2v5nf0xra3z95/raw_data.zip?rlkey=8rxvlfdt91mc8hg0u7o2xazon&dl=0).
 - Traffic Signs Dataset in YOLO format for Detection tasks.
 - Consists of images in `*.jpg` format and `*.txt` files (that have the same names as images).
 - `*.txt` files include annotations of bounding boxes of Traffic Signs in YOLO format
@@ -14,7 +15,7 @@
 - Danger category consists of following Traffic Sings: `priority at next intersection`, `danger`, `bend left`, `bend right`, `bend`, `uneven road`, `slippery road`, `road narrows`, `construction`, `traffic signal`, `pedestrian crossing`, `school crossing`, `cycles crossing`, `snow`, `animals`.
 - Mandatory category consists of following Traffic Sings: `go right`, `go left`, `go straight`, `go right or straight`,` go left or straight`, `keep right`, `keep left`, `roundabout`.
 - Other category consists of following Traffic Sings: `restriction ends`, `priority road`, `give way`, `stop`, `no entry`.
-- Legacy: To train in Darknet framework, dataset is accompanied with following files:
+- Legacy: To train in the Darknet framework, the original dataset is accompanied by the following files (i.e., we use some of them for other purposes):
 - `ts_data.data`, `classes.names`, `train.txt`, `test.txt`, `yolov3_ts_test.cfg`, `yolov3_ts_train.cfg`.
 ## Acknowledgements
 - Initial data is German Traffic Sign Detection Benchmark (GTDRB).
