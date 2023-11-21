@@ -11,7 +11,7 @@ from imblearn.over_sampling import RandomOverSampler
 
 # Custom imports
 from models.cnn1_cropped_only.shared_func import showDataSamples, getTrainData, getTestData, cropImagesAndStoreRoadSigns, getImageAndSignDimensions, writeToExcel, Timer
-from models.cnn1_cropped_only.shared_func import resolve_duplicate_filenames
+from models.cnn1_cropped_only.shared_func import resolve_duplicate_filenames, saveMisclassifiedImages
 
 
 # Global Variables
@@ -23,6 +23,7 @@ OUTPUT_DIR_TEST_CROPPED = f"{ROOT_DIR}/data/cropped/test/images/"
 OUTPUT_DIR_VALID_CROPPED = f"{ROOT_DIR}/data/cropped/valid/images/"
 # Cropped Only (CNN #1)
 CROPPED_ONLY_PRESENT_EXCEL = f'{ROOT_DIR}/output/excel/cropped_only/'
+CROPPED_ONLY_PRESENT_IMG = f'{ROOT_DIR}/output/images/cropped_only/misses/'
 # Validation set split
 VAL_SPLIT = 0.2
 
@@ -213,6 +214,7 @@ def runCroppedOnly(oversample = False):
     evaluate_info_df['runtime'] = str(runtime)
 
     writeToExcel(prediction_df, evaluate_info_df, CROPPED_ONLY_PRESENT_EXCEL, OUTPUT_DIR_TEST = None, name = "cropped_only")
+    saveMisclassifiedImages(prediction_df, actual_col = '(Actual) Class Number', predicted_col = '(Predicted) Class Number', filename_col = 'Image Filename', input_test_dir = OUTPUT_DIR_TEST_CROPPED, output_img_dir = CROPPED_ONLY_PRESENT_IMG)
 
 
 def main(debug):

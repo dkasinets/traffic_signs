@@ -280,3 +280,27 @@ def resolve_duplicate_filenames(df, filename_column):
         new_filenames.append(new_filename)
     df[filename_column] = new_filenames
     return df
+
+
+def saveMisclassifiedImages(prediction_df, actual_col, predicted_col, filename_col, input_test_dir, output_img_dir):
+    """
+        Save all misclassified images (with a corresponding informational .txt file) for easier analysis. 
+    """
+    # Create Output folder for YOLO images
+    now = datetime.now()
+    formatted_date = now.strftime("%m-%d-%Y-%I-%M-%S-%p")
+    output_img_filepath = f"{output_img_dir}{f'cropped_only_{formatted_date}'}"
+    os.makedirs(output_img_filepath, exist_ok = True) # Create the output directory if it doesn't exist
+
+    # Get misclassified images
+    misclassified_df = prediction_df[prediction_df[predicted_col] != prediction_df[actual_col]]
+
+    # Save misclassified images
+    for index, row in misclassified_df.iterrows():
+        # Get input path (of the source file)
+        presentation_path = os.path.join(input_test_dir, row[filename_col])
+        img = cv.imread(presentation_path)
+        # Add Actual/Predicted values in Filename
+        filename = f"{os.path.splitext(os.path.basename(row[filename_col]))[0]}_(Predicted={row[predicted_col]} Actual={row[actual_col]}).jpg"
+        # Write output file
+        cv.imwrite(os.path.join(output_img_filepath, filename), img)

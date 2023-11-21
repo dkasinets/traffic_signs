@@ -11,7 +11,7 @@ from sklearn.model_selection import train_test_split
 from imblearn.over_sampling import RandomOverSampler
 
 from models.cnn3_speed_only.shared_func import showDataSamples, cropImagesAndStoreRoadSigns, getImageAndSignDimensions, writeToExcel, Timer
-from models.cnn3_speed_only.shared_func import getLabeledData, resolve_duplicate_filenames
+from models.cnn3_speed_only.shared_func import getLabeledData, resolve_duplicate_filenames, saveMisclassifiedImages
 
 
 # Global Variables
@@ -23,6 +23,7 @@ OUTPUT_DIR_TEST_CROPPED_SPEED_ONLY = f"{ROOT_DIR}/data/cropped_speed_only/test/i
 OUTPUT_DIR_VALID_CROPPED_SPEED_ONLY = f"{ROOT_DIR}/data/cropped_speed_only/valid/images/"
 # Speed Sings Only (CNN #3)
 SPEED_ONLY_PRESENT_EXCEL = f'{ROOT_DIR}/output/excel/speed_only/'
+SPEED_ONLY_PRESENT_IMG = f'{ROOT_DIR}/output/images/speed_only/misses/'
 # Validation set split
 VAL_SPLIT = 0.2
 
@@ -248,6 +249,7 @@ def runCroppedOnlySpeedSigns(oversample = False):
     evaluate_info_df['runtime'] = str(runtime)
 
     writeToExcel(prediction_df, evaluate_info_df, SPEED_ONLY_PRESENT_EXCEL, OUTPUT_DIR_TEST = None, name = "cropped_only_Speed")
+    saveMisclassifiedImages(prediction_df, actual_col = '(Actual) ClassID', predicted_col = '(Predicted) ClassID', filename_col = 'Image Filename', input_test_dir = OUTPUT_DIR_TEST_CROPPED_SPEED_ONLY, output_img_dir = SPEED_ONLY_PRESENT_IMG)
 
 
 def main(debug):

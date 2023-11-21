@@ -11,7 +11,7 @@ from sklearn.model_selection import train_test_split
 from imblearn.over_sampling import RandomOverSampler
 
 from models.cnn2_prohib_only.shared_func import showDataSamples, cropImagesAndStoreRoadSigns, getImageAndSignDimensions, writeToExcel, Timer
-from models.cnn2_prohib_only.shared_func import getLabeledData, resolve_duplicate_filenames
+from models.cnn2_prohib_only.shared_func import getLabeledData, resolve_duplicate_filenames, saveMisclassifiedImages
 
 
 # Global Variables
@@ -23,6 +23,7 @@ OUTPUT_DIR_TEST_CROPPED_PROHIB_ONLY = f"{ROOT_DIR}/data/cropped_prohib_only/test
 OUTPUT_DIR_VALID_CROPPED_PROHIB_ONLY = f"{ROOT_DIR}/data/cropped_prohib_only/valid/images/"
 # Prohibitory Signs Only (CNN #2)
 PROHIBITORY_ONLY_PRESENT_EXCEL = f'{ROOT_DIR}/output/excel/prohibitory_only/'
+PROHIBITORY_ONLY_PRESENT_IMG = f'{ROOT_DIR}/output/images/prohibitory_only/misses/'
 # Validation set split
 VAL_SPLIT = 0.2
 
@@ -251,6 +252,7 @@ def runCroppedOnlyProhibitory(oversample = False):
     evaluate_info_df['runtime'] = str(runtime)
 
     writeToExcel(prediction_df, evaluate_info_df, PROHIBITORY_ONLY_PRESENT_EXCEL, OUTPUT_DIR_TEST = None, name = "cropped_only_Prohibitory_aggregated_speed")
+    saveMisclassifiedImages(prediction_df, actual_col = '(Actual) ClassID', predicted_col = '(Predicted) ClassID', filename_col = 'Image Filename', input_test_dir = OUTPUT_DIR_TEST_CROPPED_PROHIB_ONLY, output_img_dir = PROHIBITORY_ONLY_PRESENT_IMG)
 
 
 def main(debug):
