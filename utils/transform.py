@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Global Variables
-ROOT_DIR = "/Users/Kasinets/Dropbox/Mac/Desktop/SP22_JHU/Rodriguez/traffic_signs"
+ROOT_DIR = "/Users/Kasinets/Dropbox/Mac/Desktop/SP22_JHU/Rodriguez/TRAFFIC_SIGNS/traffic_signs"
 EXAMPLE_IMAGE = f"{ROOT_DIR}/utils/squareX.bmp"
 
 
@@ -20,8 +20,11 @@ def TwoDHaarTransform(Im, L):
 
     waveletIm = Im.copy()
     
+    N1, N2 = Im.shape
+    waveletIm = np.zeros((N1, N2))  # Create an array with zeros for waveletIm
     for l in range(L):
-        n1, n2 = Im.shape
+        n1 = N1 // 2**(l)
+        n2 = N2 // 2**(l)
         LL = np.zeros((n1 // 2, n2 // 2), dtype=float)
         LH = np.zeros((n1 // 2, n2 // 2), dtype=float)
         HL = np.zeros((n1 // 2, n2 // 2), dtype=float)
@@ -30,24 +33,24 @@ def TwoDHaarTransform(Im, L):
         for i in range(0, n1, 2):
             for j in range(0, n2, 2):
                 im00 = Im[i, j]
-                im01 = Im[i, j + 1]
-                im10 = Im[i + 1, j]
+                im01 = Im[i + 1, j]
+                im10 = Im[i, j + 1]
                 im11 = Im[i + 1, j + 1]
                 
-                LL[i // 2, j // 2] = (im00 + im01 + im10 + im11) / 4
-                LH[i // 2, j // 2] = (im00 + im01 - im10 - im11) / 4
-                HL[i // 2, j // 2] = (im00 - im01 + im10 - im11) / 4
-                HH[i // 2, j // 2] = (im00 - im01 - im10 + im11) / 4
+                LL[(i + 1) // 2, (j + 1) // 2] = (im00 + im01 + im10 + im11) / 4
+                LH[(i + 1) // 2, (j + 1) // 2] = (im00 + im01 - im10 - im11) / 4
+                HL[(i + 1) // 2, (j + 1) // 2] = (im00 - im01 + im10 - im11) / 4
+                HH[(i + 1) // 2, (j + 1) // 2] = (im00 - im01 - im10 + im11) / 4
         
         synImage = np.zeros((n1, n2), dtype=float)
         synImage[0:n1 // 2, 0:n2 // 2] = LL
         synImage[n1 // 2:n1, 0:n2 // 2] = LH
         synImage[0:n1 // 2, n2 // 2:n2] = HL
         synImage[n1 // 2:n1, n2 // 2:n2] = HH
-        
-        Im[0:n1 // 2, 0:n2 // 2] = LL
-        waveletIm = synImage if l == 0 else np.dstack((waveletIm, synImage))
-    
+
+        Im = LL
+        waveletIm[0:n1, 0:n2] = synImage
+
     return waveletIm
 
 
@@ -98,6 +101,7 @@ def DaubechiesWaveletTransform(size):
     return Daub4
 
 
+# TODO: Work on DCT instead
 def testDaubechiesWavelet(filepath):
     # Testing Daubechies Wavelet Transform (using squareX.bmp)
     
@@ -149,8 +153,8 @@ def testDaubechiesWavelet(filepath):
 
 def main(debug):
     print("\n")
-    # testTwoDHaar(EXAMPLE_IMAGE)
-    testDaubechiesWavelet(EXAMPLE_IMAGE)
+    testTwoDHaar(EXAMPLE_IMAGE)
+    # testDaubechiesWavelet(EXAMPLE_IMAGE)
 
 
 if __name__ == "__main__":
