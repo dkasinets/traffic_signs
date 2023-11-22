@@ -22,6 +22,10 @@ SPEED_ONLY_PRESENT_EXCEL = f'{ROOT_DIR}/output/excel/speed_only/'
 SPEED_ONLY_PRESENT_IMG = f'{ROOT_DIR}/output/images/speed_only/misses/'
 # Validation set split
 VAL_SPLIT = 0.2
+# Transformations relataed parameters
+TRANSFORM_TYPE_2DHAAR = "2dhaar"
+TRANSFORM_TYPE_DCT2 = "dct2"
+TRANSFORM_IMG_DIMENSION = 32
 
 import sys
 sys.path.append(f'{ROOT_DIR}/utils/')
@@ -45,7 +49,7 @@ def croppedOnlySpeedTransformedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_
     np.random.seed(0)
 
     print("\nGet Transform Sets...")
-    img_col, transform_type, img_dim = 'Image Filename', "2dhaar", 32
+    img_col, transform_type, img_dim = 'Image Filename', TRANSFORM_TYPE_DCT2, TRANSFORM_IMG_DIMENSION
     total_img_cols = img_dim * img_dim
     transform_cols = [f"tr_{i}" for i in range(0, total_img_cols)]
 
