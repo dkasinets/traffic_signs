@@ -15,6 +15,9 @@ output/excel/cropped_only/legacy
 output/excel/prohibitory_only/legacy
 output/excel/speed_only/legacy
 output/excel/yolo/legacy
+output/images/cropped_only/misses/legacy
+output/images/prohibitory_only/misses/legacy
+output/images/speed_only/misses/legacy
 output/images/yolo/legacy
 utils/legacy
 legacy/

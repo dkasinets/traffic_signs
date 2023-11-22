@@ -36,7 +36,7 @@ def main(debug):
     # CNN #3
     # Number of classes: 8 
     # NOTE: Here, we predict speed signs only.
-    runCroppedOnlySpeedSigns(oversample = False) 
+    runCroppedOnlySpeedSigns(oversample = False, apply_transform = True) 
 
     tmr.ShowTime() # End timer.
 

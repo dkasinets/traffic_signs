@@ -11,6 +11,7 @@ import time
 from openpyxl import Workbook
 from datetime import datetime
 import shutil
+from utils.transforms.transform import getTwoDHaar, getDCT2
 
 
 def showDataSamples(directory_path):
@@ -282,14 +283,14 @@ def resolve_duplicate_filenames(df, filename_column):
     return df
 
 
-def saveMisclassifiedImages(prediction_df, actual_col, predicted_col, filename_col, input_test_dir, output_img_dir):
+def saveMisclassifiedImages(prediction_df, actual_col, predicted_col, filename_col, input_test_dir, output_img_dir, name = "misclassified"):
     """
         Save all misclassified images (with a corresponding informational .txt file) for easier analysis. 
     """
     # Create Output folder for YOLO images
     now = datetime.now()
     formatted_date = now.strftime("%m-%d-%Y-%I-%M-%S-%p")
-    output_img_filepath = f"{output_img_dir}{f'cropped_only_{formatted_date}'}"
+    output_img_filepath = f"{output_img_dir}{f'{name}_{formatted_date}'}"
     os.makedirs(output_img_filepath, exist_ok = True) # Create the output directory if it doesn't exist
 
     # Get misclassified images
@@ -304,3 +305,39 @@ def saveMisclassifiedImages(prediction_df, actual_col, predicted_col, filename_c
         filename = f"{os.path.splitext(os.path.basename(row[filename_col]))[0]}_(Predicted={row[predicted_col]} Actual={row[actual_col]}).jpg"
         # Write output file
         cv.imwrite(os.path.join(output_img_filepath, filename), img)
+
+
+def add_transformed_columns_wrapper(image_dir, type, image_dim):
+    def add_transformed_columns(row):
+        """
+            Get new columns (for a single row) in a transform set.
+        """
+        image_filename = os.path.join(image_dir, row['Image Filename'])
+
+        # Pick a transformation
+        if type == "2dhaar":
+            transformed_data = getTwoDHaar(image_filename, image_dim)
+        elif type == "dct2":
+            transformed_data = getDCT2(image_filename, image_dim)
+        # TODO: ... continue elif: 'all', 'DaubechiesWavelet', 'Fourier'
+        else:
+            return row
+        
+        transformed_data = transformed_data.flatten()
+        # Add columns tr_0, tr_1, ..., tr_1023 to the DataFrame
+        new_cols = {f"tr_{i}": val for i, val in enumerate(transformed_data)}
+        row = pd.concat([row, pd.Series(new_cols)])
+        return row
+    return add_transformed_columns
+
+
+def getTransformSet(img_col_df, image_dir, type, image_dim):
+    """
+        Get a dataset containing N x N columns, where N is the dimensions of a cropped image.
+        Plus 1 extra column for the file name.
+        Here, N x N stands for the number of elements in a flattened 2D matrix, 
+        that we get after applying a transformation on an image (e.g., Discrete Cosine Transform, 2D Haar Wavelet Transform).
+    """
+    print(f"\nGetting Transform set for {image_dir}...\n")
+    img_col_df = img_col_df.apply(add_transformed_columns_wrapper(image_dir, type, image_dim), axis=1)
+    return img_col_df
