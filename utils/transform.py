@@ -1,14 +1,17 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import cv2 as cv
+import os
 
 # Global Variables
 ROOT_DIR = "/Users/Kasinets/Dropbox/Mac/Desktop/SP22_JHU/Rodriguez/TRAFFIC_SIGNS/traffic_signs"
-EXAMPLE_IMAGE = f"{ROOT_DIR}/utils/squareX.bmp"
+EXAMPLE_IMAGE_GREYSCALE = f"{ROOT_DIR}/utils/squareX.bmp"
+EXAMPLE_IMAGE_COLOR_SQUARE = f"{ROOT_DIR}/utils/00260_0.jpg"
+EXAMPLE_IMAGE_COLOR_OBLONG = f"{ROOT_DIR}/utils/00216_1.jpg"
 
 
 def TwoDHaarTransform(Im, L):
-    # This program was written to implement the Haar Wavelet on an image for 
-    # the intention of demonstrating the Haar wavelet.  
+    # This program was written to implement the Haar Wavelet on an image.  
     #
     # Inputs:
     #       Im is the image to be transformed.
@@ -33,8 +36,8 @@ def TwoDHaarTransform(Im, L):
         for i in range(0, n1, 2):
             for j in range(0, n2, 2):
                 im00 = Im[i, j]
-                im01 = Im[i + 1, j]
-                im10 = Im[i, j + 1]
+                im01 = Im[i, j + 1] 
+                im10 = Im[i + 1, j]
                 im11 = Im[i + 1, j + 1]
                 
                 LL[(i + 1) // 2, (j + 1) // 2] = (im00 + im01 + im10 + im11) / 4
@@ -54,23 +57,99 @@ def TwoDHaarTransform(Im, L):
     return waveletIm
 
 
-def testTwoDHaar(filepath):
-    # Testing 2D Haar Wavelet Transform (using squareX.bmp)
+def plotTwoDHaar(filepath, image_dim = 128):
+    # Display 2D Haar Wavelet Transform (of greyscale image).
 
-    # Load and display the original image (replace 'squareX.bmp' with your image)
-    Im = plt.imread(filepath)
+    # Load (and display) the original image
+    Im = cv.imread(filepath)
+    Im = cv.cvtColor(Im, cv.COLOR_BGR2RGB) # opencv uses bgr color mode and matplotlib uses rgb color mode
+    plt.figure()
+    plt.imshow(Im, cmap = 'gray', vmin = 0, vmax = 255) # cmap is ignored if Im is RGB(A).
+    plt.title(os.path.basename(filepath))
+    print("Original image size: ", Im.shape)
+
+    # Resize
+    # Other interpolation algorithms: https://docs.opencv.org/4.x/da/d54/group__imgproc__transform.html#ga5bb5a1fea74ea38e1a5445ca803ff121
+    # cv.INTER_AREA - resampling using pixel area relation. It may be a preferred method for image decimation, as it gives moire'-free results.
+    # But when the image is zoomed, it is similar to the cv.INTER_NEAREST method.
+    Im_resized = cv.resize(Im, (image_dim, image_dim), interpolation = cv.INTER_AREA) # INTER_LINEAR - bilinear interpolation
+    # Convert to greyscale
+    Im = cv.cvtColor(Im_resized, cv.COLOR_BGR2GRAY)
     plt.figure()
     plt.imshow(Im, cmap = 'gray', vmin = 0, vmax = 255)
-    plt.title("squareX.bmp")
+    plt.title(f"Resized (& grayscale) version of {os.path.basename(filepath)}")
+    print("\nResized (& grayscale) image size: ", image_dim, image_dim)
 
     # Perform the 2D Haar Wavelet Transform
-    L = 4
+    L = 4 # Define the number of levels L
     waveletIm = TwoDHaarTransform(Im.astype(float), L)
+    result = np.abs(waveletIm)
     
     # Display the transformed image
     plt.figure()
-    plt.imshow(np.abs(waveletIm), cmap = 'gray', vmin = 0, vmax = 255)
-    plt.title("2D Haar Wavelet Transform")
+    plt.imshow(result, cmap = 'gray', vmin = 0, vmax = 255)
+    plt.title(f"2D Haar Wavelet Transform of {os.path.basename(filepath)}")
+    print("\nFinal result size: ", result.shape)
+
+    # Show figures
+    plt.show()
+
+
+def NPointDCT2(N):
+    # This function produces the N-point DCT_2 of an input size received.
+    # The N-point DCT_2 matrix will be a square matrix in this function.
+    # This is code that provides the use of the Discrete Cosine Transform 
+    # for transforming a spacial domain image to a Fourier domain.
+    # 
+    # Inputs:
+    #       N is the square image dimensions
+    # 
+    # Output:
+    #       NPDCT is N-point DCT_2 of an input size received
+
+    NPDCT = np.zeros((N, N))
+    for k in range(N):
+        for n in range(N):
+            if k == 0:
+                NPDCT[k, n] = np.sqrt(1/N)
+            else:
+                temp = np.cos((np.pi * (2 * n + 1) * k) / (2 * N))
+                NPDCT[k, n] = np.sqrt(2 / N) * temp
+    return NPDCT
+
+
+def plotDCT2(filepath, image_dim = 128):
+    # Display DCT2 Transform (of greyscale image).
+
+    # Load (and display) the original image
+    Im = cv.imread(filepath)
+    Im = cv.cvtColor(Im, cv.COLOR_BGR2RGB) # opencv uses bgr color mode and matplotlib uses rgb color mode
+    plt.figure()
+    plt.imshow(Im, cmap = 'gray', vmin = 0, vmax = 255) # cmap is ignored if Im is RGB(A).
+    plt.title(os.path.basename(filepath))
+    print("Original image size: ", Im.shape)
+    
+    # Resize
+    # Other interpolation algorithms: https://docs.opencv.org/4.x/da/d54/group__imgproc__transform.html#ga5bb5a1fea74ea38e1a5445ca803ff121
+    # cv.INTER_AREA - resampling using pixel area relation. It may be a preferred method for image decimation, as it gives moire'-free results.
+    # But when the image is zoomed, it is similar to the cv.INTER_NEAREST method.
+    Im_resized = cv.resize(Im, (image_dim, image_dim), interpolation = cv.INTER_AREA) # INTER_LINEAR - bilinear interpolation
+    # Convert to greyscale
+    Im = cv.cvtColor(Im_resized, cv.COLOR_BGR2GRAY)
+    plt.figure()
+    plt.imshow(Im, cmap = 'gray', vmin = 0, vmax = 255)
+    plt.title(f"Resized (& grayscale) version of {os.path.basename(filepath)}")
+    print("\nResized (& grayscale) image size: ", image_dim, image_dim)
+
+    # Perform the DCT2 Transform
+    DCT_128 = NPointDCT2(image_dim)
+    result = np.matmul(np.matmul(DCT_128, Im.astype(float)), np.transpose(DCT_128))
+    
+    # Display the transformed image
+    plt.figure()
+    plt.imshow(result, cmap = 'gray', vmin = 0, vmax = 255)
+    plt.title(f"DCT2 Transform of {os.path.basename(filepath)}")
+    print("\nFinal result size: ", result.shape)
 
     # Show figures
     plt.show()
@@ -101,7 +180,6 @@ def DaubechiesWaveletTransform(size):
     return Daub4
 
 
-# TODO: Work on DCT instead
 def testDaubechiesWavelet(filepath):
     # Testing Daubechies Wavelet Transform (using squareX.bmp)
     
@@ -153,8 +231,11 @@ def testDaubechiesWavelet(filepath):
 
 def main(debug):
     print("\n")
-    testTwoDHaar(EXAMPLE_IMAGE)
-    # testDaubechiesWavelet(EXAMPLE_IMAGE)
+
+    # plotDCT2(EXAMPLE_IMAGE_COLOR_OBLONG, image_dim = 32)
+    plotTwoDHaar(EXAMPLE_IMAGE_GREYSCALE, image_dim = 32)
+    
+    # testDaubechiesWavelet(EXAMPLE_IMAGE_GREYSCALE)
 
 
 if __name__ == "__main__":
