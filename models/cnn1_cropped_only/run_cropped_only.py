@@ -9,11 +9,6 @@ from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 from imblearn.over_sampling import RandomOverSampler
 
-# Custom imports
-from models.cnn1_cropped_only.shared_func import showDataSamples, getTrainData, getTestData, cropImagesAndStoreRoadSigns, getImageAndSignDimensions, writeToExcel, Timer
-from models.cnn1_cropped_only.shared_func import resolve_duplicate_filenames, saveMisclassifiedImages
-
-
 # Global Variables
 ROOT_DIR = "/Users/Kasinets/Dropbox/Mac/Desktop/SP22_JHU/Rodriguez/TRAFFIC_SIGNS/traffic_signs"
 DATA_DIR = f"{ROOT_DIR}/data/ts/ts/"
@@ -26,6 +21,11 @@ CROPPED_ONLY_PRESENT_EXCEL = f'{ROOT_DIR}/output/excel/cropped_only/'
 CROPPED_ONLY_PRESENT_IMG = f'{ROOT_DIR}/output/images/cropped_only/misses/'
 # Validation set split
 VAL_SPLIT = 0.2
+
+import sys
+sys.path.append(f'{ROOT_DIR}/utils/')
+from utils.shared_func import showDataSamples, getTrainData, getTestData, cropImagesAndStoreRoadSigns, getImageAndSignDimensions, writeToExcel, Timer
+from utils.shared_func import resolve_duplicate_filenames, saveMisclassifiedImages
 
 
 def croppedOnlyCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_TRAIN, OUTPUT_DIR_TEST, OUTPUT_DIR_VALID, debug = False):
@@ -82,15 +82,15 @@ def croppedOnlyCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_TRAIN, OUTPUT_DI
     x = layers.Dense(128, activation='relu')(x)
     
     # output layer
-    class_number_head = layers.Dense(4, activation = 'softmax', name = 'class_number')(x)
+    class_number_head = layers.Dense(4, activation = 'softmax')(x)
 
     # Create the model
     model = keras.Model(inputs = input_layer, outputs = [class_number_head])
 
     # Compile the model with appropriate loss functions and metrics
-    model.compile(optimizer='adam', 
-                  loss = {'class_number': keras.losses.SparseCategoricalCrossentropy()},
-                  metrics = {'class_number': 'accuracy'})
+    model.compile(optimizer = 'adam', 
+                  loss = 'sparse_categorical_crossentropy', 
+                  metrics = ['accuracy']) 
     
     # Train the model
     epochs = 20

@@ -92,8 +92,8 @@ def croppedOnlySpeedTransformedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_
 
     # Compile the model with appropriate loss functions and metrics
     model.compile(optimizer = 'adam', 
-                  loss = 'sparse_categorical_crossentropy',
-                  metrics = ['accuracy'])
+                  loss = 'sparse_categorical_crossentropy', 
+                  metrics = ['accuracy']) 
     
     # Train the model
     epochs = 20
@@ -222,15 +222,15 @@ def croppedOnlySpeedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_TRAIN, OUTP
     x = layers.Dense(128, activation='relu')(x)
     
     # output layer
-    class_id_head = layers.Dense(12, activation = 'softmax', name = 'class_id')(x)
+    class_id_head = layers.Dense(12, activation = 'softmax')(x)
 
     # Create the model
     model = keras.Model(inputs = input_layer, outputs = [class_id_head])
 
     # Compile the model with appropriate loss functions and metrics
-    model.compile(optimizer='adam', 
-                  loss = {'class_id': keras.losses.SparseCategoricalCrossentropy()},
-                  metrics = {'class_id': 'accuracy'})
+    model.compile(optimizer = 'adam', 
+                  loss = 'sparse_categorical_crossentropy', 
+                  metrics = ['accuracy']) 
     
     # Train the model
     epochs = 20

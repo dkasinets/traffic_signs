@@ -10,10 +10,6 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 from imblearn.over_sampling import RandomOverSampler
 
-from models.cnn2_prohib_only.shared_func import showDataSamples, cropImagesAndStoreRoadSigns, getImageAndSignDimensions, writeToExcel, Timer
-from models.cnn2_prohib_only.shared_func import getLabeledData, resolve_duplicate_filenames, saveMisclassifiedImages
-
-
 # Global Variables
 ROOT_DIR = "/Users/Kasinets/Dropbox/Mac/Desktop/SP22_JHU/Rodriguez/TRAFFIC_SIGNS/traffic_signs"
 DATA_DIR = f"{ROOT_DIR}/data/ts/ts/"
@@ -26,6 +22,11 @@ PROHIBITORY_ONLY_PRESENT_EXCEL = f'{ROOT_DIR}/output/excel/prohibitory_only/'
 PROHIBITORY_ONLY_PRESENT_IMG = f'{ROOT_DIR}/output/images/prohibitory_only/misses/'
 # Validation set split
 VAL_SPLIT = 0.2
+
+import sys
+sys.path.append(f'{ROOT_DIR}/utils/')
+from utils.shared_func import showDataSamples, cropImagesAndStoreRoadSigns, getImageAndSignDimensions, writeToExcel, Timer
+from utils.shared_func import getLabeledData, resolve_duplicate_filenames, saveMisclassifiedImages
 
 
 def croppedOnlyProhibitoryCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_TRAIN, OUTPUT_DIR_TEST, OUTPUT_DIR_VALID, debug = False):
@@ -97,15 +98,15 @@ def croppedOnlyProhibitoryCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_TRAIN
     x = layers.Dense(128, activation='relu')(x)
     
     # output layer
-    class_id_head = layers.Dense(12, activation = 'softmax', name = 'class_id')(x)
+    class_id_head = layers.Dense(12, activation = 'softmax')(x)
 
     # Create the model
     model = keras.Model(inputs = input_layer, outputs = [class_id_head])
 
     # Compile the model with appropriate loss functions and metrics
     model.compile(optimizer='adam', 
-                  loss = {'class_id': keras.losses.SparseCategoricalCrossentropy()},
-                  metrics = {'class_id': 'accuracy'})
+                  loss = 'sparse_categorical_crossentropy', 
+                  metrics = ['accuracy']) 
     
     # Train the model
     epochs = 20

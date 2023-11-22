@@ -1,9 +1,8 @@
-from utils.utilities import Timer
-from utils.utilities import showDataSamples
+from utils.shared_func import Timer
+from utils.shared_func import showDataSamples
 from models.cnn1_cropped_only.run_cropped_only import runCroppedOnly
 from models.cnn2_prohib_only.run_prohibitory_only import runCroppedOnlyProhibitory
 from models.cnn3_speed_only.run_speed_only import runCroppedOnlySpeedSigns
-
 
 # Global Variables
 ROOT_DIR = "/Users/Kasinets/Dropbox/Mac/Desktop/SP22_JHU/Rodriguez/TRAFFIC_SIGNS/traffic_signs"
