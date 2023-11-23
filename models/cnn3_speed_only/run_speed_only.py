@@ -23,10 +23,18 @@ SPEED_ONLY_PRESENT_IMG = f'{ROOT_DIR}/output/images/speed_only/misses/'
 # Validation set split
 VAL_SPLIT = 0.2
 # Transformations relataed parameters
-TRANSFORM_TYPE_2DHAAR = "2dhaar" # 62.963% on Test (w/ 32)
-TRANSFORM_TYPE_DCT2 = "dct2" # 87.037% on Test (w/ 32)
-TRANSFORM_TYPE_DFT = "dft" # 64.8148% on Test (w/ 32)
+TRANSFORM_TYPE_2DHAAR = "2dhaar"
+TRANSFORM_TYPE_DCT2 = "dct2"
+TRANSFORM_TYPE_DFT = "dft"
 TRANSFORM_IMG_DIMENSION = 32
+
+# NOTES: For Transformations we've got:
+# "2dhaar" - 62.963% accuracy on Test (w/ 32x32 image size)
+# "dct2" - 87.037% accuracy on Test (w/ 32x32 image size) 
+# "dft" - 64.8148% accuracy on Test (w/ 32x32 image size) 
+# Note: Transformations improvements:
+# Rather than using "2dhaar" (32x32) directly, we can do "2dhaar" (to resize) followed by "dct2". 
+# Rather than using "dft" (32x32) directly, we better do 128x128, select low freq coefficients & remove center coefficient(s) (e.g. 2x2 for even images).
 
 import sys
 sys.path.append(f'{ROOT_DIR}/utils/')

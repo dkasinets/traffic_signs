@@ -359,7 +359,6 @@ def DaubechiesWaveletTransform(size):
     return Daub4
 
 
-# TODO: To revisit
 def plotDaubechiesWavelet(filepath, image_dim = 128):
     """
         Display Daubechies Wavelet Transform (of grayscale image).
@@ -429,13 +428,29 @@ def plotDaubechiesWavelet(filepath, image_dim = 128):
     plt.show()
 
 
+# NOTES:
+# For DCT: 
+# TODO: Need to Normalize (0 - 255) - to better represent the data. (Just for visuals, no need to feed it to model).
+# TODO: Remove top left [0, 0] DC coefficient (average of energy). (Before feeding to model).  
+# TODO: Try taking an absolute value. Check if accuracy is similar.
+# TODO: 
+# Try on Speed only set:  
+# - 2d cnn (128x128), (raw image)
+# - 2d cnn (32x32), (raw image)
+# Try this (Need to compare apples to apples):
+# - 2d cnn (128x128), with dct (non - flattened) 
+# - 2d cnn (32x32), with dct (non - flattened)
+# Quick way. We have it now. (apples to oranges):
+# - 1d cnn (32x32), with dct (flattened) 
+# - 1d cnn (32x32), raw image flattened 
+
 def main(debug):
     print("\n")
     
-    # plotDCT2(EXAMPLE_IMAGE_COLOR_OBLONG, image_dim = 32)
+    plotDCT2(EXAMPLE_IMAGE_GRAYSCALE, image_dim = 32)
     # plotTwoDHaar(EXAMPLE_IMAGE_GRAYSCALE, image_dim = 32)
     # plotDFT(EXAMPLE_IMAGE_GRAYSCALE, image_dim = 32)
-    plotDaubechiesWavelet(EXAMPLE_IMAGE_GRAYSCALE, image_dim = 32)
+    # plotDaubechiesWavelet(EXAMPLE_IMAGE_GRAYSCALE, image_dim = 32)
 
 
 if __name__ == "__main__":
