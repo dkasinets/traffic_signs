@@ -174,8 +174,8 @@ def getDCT2(filepath, image_dim = 128):
     # But when the image is zoomed, it is similar to the cv.INTER_NEAREST method.
     Im_resized = cv.resize(Im, (image_dim, image_dim), interpolation = cv.INTER_AREA) # INTER_LINEAR - bilinear interpolation
     Im = cv.cvtColor(Im_resized, cv.COLOR_BGR2GRAY) # Convert to grayscale
-    DCT_128 = NPointDCT2(image_dim) # Perform the DCT2 Transform
-    return np.matmul(np.matmul(DCT_128, Im.astype(float)), np.transpose(DCT_128))
+    DCT = NPointDCT2(image_dim) # Perform the DCT2 Transform
+    return np.matmul(np.matmul(DCT, Im.astype(float)), np.transpose(DCT))
 
 
 def plotDCT2(filepath, image_dim = 128):
@@ -208,14 +208,119 @@ def plotDCT2(filepath, image_dim = 128):
     print("\nResized (& grayscale) image size: ", image_dim, image_dim)
 
     # Perform the DCT2 Transform
-    DCT_128 = NPointDCT2(image_dim)
-    result = np.matmul(np.matmul(DCT_128, Im.astype(float)), np.transpose(DCT_128))
+    DCT = NPointDCT2(image_dim)
+    result = np.matmul(np.matmul(DCT, Im.astype(float)), np.transpose(DCT))
     
     # Display the transformed image
     plt.figure()
     plt.imshow(result, cmap = 'gray', vmin = 0, vmax = 255)
     plt.title(f"DCT2 Transform of {os.path.basename(filepath)}")
     print("\nFinal result size: ", result.shape)
+
+    # Show figures
+    plt.show()
+
+
+def DFT_DS(N):
+    """
+        This algorithm is built for creating Discrete Fourier Transform Matrix.
+        The algorithm takes N input, which creates N x N DFT matrix. The input value has to 2^n.
+        
+        Inputs:
+            N is the matrix dimensions
+        
+        Output:
+            N x N DFT matrix
+    """
+    DFT_Matrix = np.zeros((N, N), dtype = np.complex128)
+    for k in range(N):
+        for n in range(N):
+            # In Python, the symbol j is used to denote the imaginary unit.
+            DFT_Matrix[k, n] = np.exp((-2j * np.pi * (n) * (k)) / N)
+    return DFT_Matrix
+
+
+def getDFT(filepath, image_dim = 128):
+    """
+        Given an image (i.e., either RGB or grayscale), 
+        return a 2D matrix (Discrete Fourier Transform of grayscale image). 
+
+        Inputs:
+            filepath is the input filepath
+            image_dim is an integer dimension of a square image (i.e., at the input filepath)
+        
+        Output:
+            2D matrix (Discrete Fourier Transform of grayscale image)
+    """
+    Im = cv.imread(filepath) # Load (and display) the original image
+    Im = cv.cvtColor(Im, cv.COLOR_BGR2RGB) # opencv uses bgr color mode and matplotlib uses rgb color mode
+    # Resize
+    # Other interpolation algorithms: https://docs.opencv.org/4.x/da/d54/group__imgproc__transform.html#ga5bb5a1fea74ea38e1a5445ca803ff121
+    # cv.INTER_AREA - resampling using pixel area relation. It may be a preferred method for image decimation, as it gives moire'-free results.
+    # But when the image is zoomed, it is similar to the cv.INTER_NEAREST method.
+    Im_resized = cv.resize(Im, (image_dim, image_dim), interpolation = cv.INTER_AREA) # INTER_LINEAR - bilinear interpolation
+    Im = cv.cvtColor(Im_resized, cv.COLOR_BGR2GRAY) # Convert to grayscale
+    DFT = DFT_DS(image_dim) # Generate DFT matrix of size image_dim
+    DFT_sX = np.dot(np.dot(DFT, Im.astype(float)), np.conj(DFT).T) # Perform Discrete Fourier Transform on the image
+    return np.abs(DFT_sX)
+
+
+def plotDFT(filepath, image_dim = 128):
+    """
+        Display DFT Transform (of grayscale image).
+
+        Inputs:
+            filepath is the input filepath
+            image_dim is an integer dimension of a square image (i.e., at the input filepath)
+    """
+
+    # Load (and display) the original image
+    Im = cv.imread(filepath)
+    Im = cv.cvtColor(Im, cv.COLOR_BGR2RGB) # opencv uses bgr color mode and matplotlib uses rgb color mode
+    plt.figure()
+    plt.imshow(Im, cmap = 'gray', vmin = 0, vmax = 255) # cmap is ignored if Im is RGB(A).
+    plt.title(os.path.basename(filepath))
+    print("Original image size: ", Im.shape)
+    
+    # Resize
+    # Other interpolation algorithms: https://docs.opencv.org/4.x/da/d54/group__imgproc__transform.html#ga5bb5a1fea74ea38e1a5445ca803ff121
+    # cv.INTER_AREA - resampling using pixel area relation. It may be a preferred method for image decimation, as it gives moire'-free results.
+    # But when the image is zoomed, it is similar to the cv.INTER_NEAREST method.
+    Im_resized = cv.resize(Im, (image_dim, image_dim), interpolation = cv.INTER_AREA) # INTER_LINEAR - bilinear interpolation
+    # Convert to grayscale
+    Im = cv.cvtColor(Im_resized, cv.COLOR_BGR2GRAY)
+    plt.figure()
+    plt.imshow(Im, cmap = 'gray', vmin = 0, vmax = 255)
+    plt.title(f"Resized (& grayscale) version of {os.path.basename(filepath)}")
+    print("\nResized (& grayscale) image size: ", image_dim, image_dim)
+
+    # Generate DFT matrix of size image_dim
+    DFT = DFT_DS(image_dim)
+
+    # Perform Discrete Fourier Transform on the image
+    DFT_sX = np.dot(np.dot(DFT, Im.astype(float)), np.conj(DFT).T)
+    # Display the transformed image
+    plt.figure()
+    result1 = np.abs(DFT_sX)
+    plt.imshow(result1, cmap = 'gray', vmin = 0, vmax = 255)
+    plt.title(f"DFT Transform of {os.path.basename(filepath)}")
+    print("\nFinal result size: ", result1.shape)
+
+    # Display the transformed image (shifted) 
+    # To center the zero-frequency component for better visualization in the image
+    plt.figure()
+    result2 = np.fft.fftshift(np.abs(DFT_sX))
+    plt.imshow(result2, cmap = 'gray', vmin = 0, vmax = 255)
+    plt.title(f"DFT Transform (shifted) of {os.path.basename(filepath)}")
+    print("\nFinal result size: ", result2.shape)
+
+    # Display the transformed image (shifted & log)
+    # To center the zero-frequency component & log-transformed
+    plt.figure()
+    result3 = np.log2(np.fft.fftshift(np.abs(DFT_sX + 0.001)))
+    plt.imshow(result3, cmap = 'gray', vmin = 0, vmax = 255)
+    plt.title(f"DFT Transform (shifted & log-transformed) of {os.path.basename(filepath)}")
+    print("\nFinal result size: ", result3.shape)
 
     # Show figures
     plt.show()
@@ -300,8 +405,9 @@ def main(debug):
     print("\n")
 
     # plotDCT2(EXAMPLE_IMAGE_COLOR_OBLONG, image_dim = 32)
-    plotTwoDHaar(EXAMPLE_IMAGE_GRAYSCALE, image_dim = 32)
-
+    # plotTwoDHaar(EXAMPLE_IMAGE_GRAYSCALE, image_dim = 32)
+    plotDFT(EXAMPLE_IMAGE_GRAYSCALE, image_dim = 32)
+    
     # testDaubechiesWavelet(EXAMPLE_IMAGE_GRAYSCALE)
 
 
