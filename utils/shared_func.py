@@ -11,7 +11,7 @@ import time
 from openpyxl import Workbook
 from datetime import datetime
 import shutil
-from utils.transforms.transform import getTwoDHaar, getDCT2
+from utils.transforms.transform import getTwoDHaar, getDCT2, getDFT
 
 
 def showDataSamples(directory_path):
@@ -319,7 +319,9 @@ def add_transformed_columns_wrapper(image_dir, type, image_dim):
             transformed_data = getTwoDHaar(image_filename, image_dim)
         elif type == "dct2":
             transformed_data = getDCT2(image_filename, image_dim)
-        # TODO: ... continue elif: 'all', 'DaubechiesWavelet', 'Fourier'
+        elif type == "dft":
+            transformed_data = getDFT(image_filename, image_dim)
+        # TODO: ... continue elif: 'all', 'DaubechiesWavelet'
         else:
             return row
         

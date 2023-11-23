@@ -326,10 +326,17 @@ def plotDFT(filepath, image_dim = 128):
     plt.show()
 
 
-# TODO: Rework Daubechies Wavelet
 def DaubechiesWaveletTransform(size):
-    # This code calculates the Daubechies-4 wavelet coefficients.
-    
+    """
+        This code calculates the Daubechies-4 wavelet coefficients.
+        
+        Inputs:
+            size - is the matrix dimensions
+        
+        Output:
+            Daubechies-4 wavelet coefficients
+    """
+
     h = [(1 + np.sqrt(3)) / 4, (3 + np.sqrt(3)) / 4, (3 - np.sqrt(3)) / 4, (1 - np.sqrt(3)) / 4]
     g = [-h[3], h[2], -h[1], h[0]]
     
@@ -352,19 +359,39 @@ def DaubechiesWaveletTransform(size):
     return Daub4
 
 
-def testDaubechiesWavelet(filepath):
-    # Testing Daubechies Wavelet Transform (using squareX.bmp)
+# TODO: To revisit
+def plotDaubechiesWavelet(filepath, image_dim = 128):
+    """
+        Display Daubechies Wavelet Transform (of grayscale image).
+
+        Inputs:
+            filepath is the input filepath
+            image_dim is an integer dimension of a square image (i.e., at the input filepath)
+    """
+
+    # Load (and display) the original image
+    Im = cv.imread(filepath)
+    Im = cv.cvtColor(Im, cv.COLOR_BGR2RGB) # opencv uses bgr color mode and matplotlib uses rgb color mode
+    plt.figure()
+    plt.imshow(Im, cmap = 'gray', vmin = 0, vmax = 255) # cmap is ignored if Im is RGB(A).
+    plt.title(os.path.basename(filepath))
+    print("Original image size: ", Im.shape)
     
-    # Load and display the original image (replace 'squareX.bmp' with your image)
-    # Load the image
-    Im = plt.imread(filepath)
+    # Resize
+    # Other interpolation algorithms: https://docs.opencv.org/4.x/da/d54/group__imgproc__transform.html#ga5bb5a1fea74ea38e1a5445ca803ff121
+    # cv.INTER_AREA - resampling using pixel area relation. It may be a preferred method for image decimation, as it gives moire'-free results.
+    # But when the image is zoomed, it is similar to the cv.INTER_NEAREST method.
+    Im_resized = cv.resize(Im, (image_dim, image_dim), interpolation = cv.INTER_AREA) # INTER_LINEAR - bilinear interpolation
+    # Convert to grayscale
+    Im = cv.cvtColor(Im_resized, cv.COLOR_BGR2GRAY)
     plt.figure()
     plt.imshow(Im, cmap = 'gray', vmin = 0, vmax = 255)
-    plt.title("squareX.bmp")
+    plt.title(f"Resized (& grayscale) version of {os.path.basename(filepath)}")
+    print("\nResized (& grayscale) image size: ", image_dim, image_dim)
 
     row, col = Im.shape
     IN = Im.astype(float)
-
+    
     Daub4 = DaubechiesWaveletTransform(row)
     IDTemp = np.zeros((row, col))
 
@@ -395,7 +422,8 @@ def testDaubechiesWavelet(filepath):
 
     plt.figure()
     plt.imshow(np.abs(IDaub), cmap='gray', vmin=0, vmax=255)
-    plt.title("Daubechies Wavelet")
+    plt.title(f"Daubechies Wavelet of {os.path.basename(filepath)}")
+    print("\nFinal result size: ", IDaub.shape)
     
     # Show figures
     plt.show()
@@ -403,12 +431,11 @@ def testDaubechiesWavelet(filepath):
 
 def main(debug):
     print("\n")
-
+    
     # plotDCT2(EXAMPLE_IMAGE_COLOR_OBLONG, image_dim = 32)
     # plotTwoDHaar(EXAMPLE_IMAGE_GRAYSCALE, image_dim = 32)
-    plotDFT(EXAMPLE_IMAGE_GRAYSCALE, image_dim = 32)
-    
-    # testDaubechiesWavelet(EXAMPLE_IMAGE_GRAYSCALE)
+    # plotDFT(EXAMPLE_IMAGE_GRAYSCALE, image_dim = 32)
+    plotDaubechiesWavelet(EXAMPLE_IMAGE_GRAYSCALE, image_dim = 32)
 
 
 if __name__ == "__main__":

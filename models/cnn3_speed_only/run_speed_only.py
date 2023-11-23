@@ -23,8 +23,9 @@ SPEED_ONLY_PRESENT_IMG = f'{ROOT_DIR}/output/images/speed_only/misses/'
 # Validation set split
 VAL_SPLIT = 0.2
 # Transformations relataed parameters
-TRANSFORM_TYPE_2DHAAR = "2dhaar"
-TRANSFORM_TYPE_DCT2 = "dct2"
+TRANSFORM_TYPE_2DHAAR = "2dhaar" # 62.963% on Test (w/ 32)
+TRANSFORM_TYPE_DCT2 = "dct2" # 87.037% on Test (w/ 32)
+TRANSFORM_TYPE_DFT = "dft" # 64.8148% on Test (w/ 32)
 TRANSFORM_IMG_DIMENSION = 32
 
 import sys
