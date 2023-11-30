@@ -154,6 +154,52 @@ def NPointDCT2(N):
     return NPDCT
 
 
+def getDCT2Color(filepath, image_dim = 128, absolute = False):
+    """
+    Given an RGB image
+    return a Discrete Cosine Transform of each color channel. 
+
+    NOTE: 
+    - Set the element at position (0, 0) to 0, to remove DC coefficient (average of energy)
+    - Apply absolute value to all elements in the array
+
+    Inputs:
+        filepath is the input filepath
+        image_dim is an integer dimension of a square image (i.e., at the input filepath)
+    
+    Output:
+        3D numpy array containing DCT matrices for each color channel
+    """
+    Im = cv.imread(filepath)  # Load the original image
+    Im = cv.cvtColor(Im, cv.COLOR_BGR2RGB)  # Convert from BGR to RGB
+
+    # Resize the image
+    Im_resized = cv.resize(Im, (image_dim, image_dim), interpolation = cv.INTER_AREA)
+    
+    # Split the resized image into its color channels
+    red_channel, green_channel, blue_channel = cv.split(Im_resized)
+
+    # Perform the DCT2 Transform for each color channel
+    DCT = NPointDCT2(image_dim)
+    red_DCT = np.matmul(np.matmul(DCT, red_channel.astype(float)), np.transpose(DCT))
+    green_DCT = np.matmul(np.matmul(DCT, green_channel.astype(float)), np.transpose(DCT))
+    blue_DCT = np.matmul(np.matmul(DCT, blue_channel.astype(float)), np.transpose(DCT))
+
+    # Set the element at position (0, 0) to 0
+    # Remove top left [0, 0] DC coefficient (average of energy). (Before feeding to model).  
+    red_DCT[0, 0] = 0
+    green_DCT[0, 0] = 0
+    blue_DCT[0, 0] = 0
+
+    # Apply absolute value to all elements in the array
+    if absolute:
+        red_DCT, green_DCT, blue_DCT = np.abs(red_DCT), np.abs(green_DCT), np.abs(blue_DCT)
+
+    # Stack the DCT matrices for each channel into a 3D numpy array
+    dct_matrices = np.stack((red_DCT, green_DCT, blue_DCT), axis = -1)
+    return dct_matrices
+
+
 def getDCT2(filepath, image_dim = 128):
     """
         Given an image (i.e., either RGB or grayscale), 
@@ -175,7 +221,12 @@ def getDCT2(filepath, image_dim = 128):
     Im_resized = cv.resize(Im, (image_dim, image_dim), interpolation = cv.INTER_AREA) # INTER_LINEAR - bilinear interpolation
     Im = cv.cvtColor(Im_resized, cv.COLOR_BGR2GRAY) # Convert to grayscale
     DCT = NPointDCT2(image_dim) # Perform the DCT2 Transform
-    return np.matmul(np.matmul(DCT, Im.astype(float)), np.transpose(DCT))
+
+    # Set the element at position (0, 0) to 0
+    # Remove top left [0, 0] DC coefficient (average of energy). (Before feeding to model).  
+    res_DCT = np.matmul(np.matmul(DCT, Im.astype(float)), np.transpose(DCT))
+    res_DCT[0, 0] = 0
+    return res_DCT
 
 
 def plotDCT2(filepath, image_dim = 128):
@@ -430,16 +481,25 @@ def plotDaubechiesWavelet(filepath, image_dim = 128):
 
 # NOTES:
 # For DCT: 
-# TODO: Need to Normalize (0 - 255) - to better represent the data. (Just for visuals, no need to feed it to model).
-# TODO: Remove top left [0, 0] DC coefficient (average of energy). (Before feeding to model).  
-# TODO: Try taking an absolute value. Check if accuracy is similar.
+# TODO: OK - Fed anyway. Need to Normalize (0 - 255) - to better represent the data. (Just for visuals, no need to feed it to model).
+# TODO: OK. Remove top left [0, 0] DC coefficient (average of energy). (Before feeding to model).  
+# TODO: OK. Try taking an absolute value. Check if accuracy is similar.
 # TODO: 
 # Try on Speed only set:  
-# - 2d cnn (128x128), (raw image)
-# - 2d cnn (32x32), (raw image)
+# - 2d cnn (128x128), (raw image) - OK - 0% (valid), 0.69% (train), 81.4815% (test)
+# - 2d cnn (32x32), (raw image) - OK - 0% (valid), 0% (train), 29.6296%% (test)
 # Try this (Need to compare apples to apples):
-# - 2d cnn (128x128), with dct (non - flattened) 
-# - 2d cnn (32x32), with dct (non - flattened)
+# greyscale: 
+# - 2d cnn (128x128), with dct (non - flattened) - OK - 82.23% (valid), 4.1667% (train), 50.0%% (test)
+# - 2d cnn (128x128), with dct (non - flattened, no -  DC coefficient) - OK - 85.3659% (valid), 4.1667%% (train), 53.7037%% (test)
+# - 2d cnn (32x32), with dct (non - flattened) - OK - 69.6864% (valid), 11.1111% (train), 55.5556% (test)
+# color (no -  DC coefficient):
+# - 2d cnn (128x128), with dct (non - flattened) - OK - 94.0767% (valid), 2.7778% (train), 62.963% (test)
+# - 2d cnn (32x32), with dct (non - flattened) - OK - 86.4111% (valid), 6.9444% (train), 74.0741% (test)
+# - 2d cnn (128x128), with dct (non - flattened, absolute value) - OK - 65.5052% (valid), 4.1667% (train), 48.1481% (test)
+# - 2d cnn (32x32), with dct (non - flattened, absolute value) - OK - 60.9756% (valid), 8.3333% (train), 53.7037% (test)
+
+# Optional: 
 # Quick way. We have it now. (apples to oranges):
 # - 1d cnn (32x32), with dct (flattened) 
 # - 1d cnn (32x32), raw image flattened 
@@ -447,7 +507,7 @@ def plotDaubechiesWavelet(filepath, image_dim = 128):
 def main(debug):
     print("\n")
     
-    plotDCT2(EXAMPLE_IMAGE_GRAYSCALE, image_dim = 32)
+    plotDCT2(EXAMPLE_IMAGE_COLOR_SQUARE, image_dim = 32)
     # plotTwoDHaar(EXAMPLE_IMAGE_GRAYSCALE, image_dim = 32)
     # plotDFT(EXAMPLE_IMAGE_GRAYSCALE, image_dim = 32)
     # plotDaubechiesWavelet(EXAMPLE_IMAGE_GRAYSCALE, image_dim = 32)

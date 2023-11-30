@@ -26,7 +26,7 @@ VAL_SPLIT = 0.2
 TRANSFORM_TYPE_2DHAAR = "2dhaar"
 TRANSFORM_TYPE_DCT2 = "dct2"
 TRANSFORM_TYPE_DFT = "dft"
-TRANSFORM_IMG_DIMENSION = 32
+TRANSFORM_IMG_DIMENSION = 128
 
 # NOTES: For Transformations we've got:
 # "2dhaar" - 62.963% accuracy on Test (w/ 32x32 image size)
@@ -58,14 +58,14 @@ def croppedOnlySpeedTransformedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_
     np.random.seed(0)
 
     print("\nGet Transform Sets...")
-    img_col, transform_type, img_dim = 'Image Filename', TRANSFORM_TYPE_DCT2, TRANSFORM_IMG_DIMENSION
-    total_img_cols = img_dim * img_dim
-    transform_cols = [f"tr_{i}" for i in range(0, total_img_cols)]
-
+    img_col, transform_type = 'Image Filename', TRANSFORM_TYPE_DCT2
+    BS, image_size, CHANNELS = 64, TRANSFORM_IMG_DIMENSION, 3 # Batch size, Image dimension, Total Channels
+    transform_col = "Transform Matrix"
+    
     # Get dataframe of size total_img_cols + 1 (i.e., for filename)
-    transform_train_df = getTransformSet(train_df[[img_col]].copy(), OUTPUT_DIR_TRAIN, transform_type, img_dim)
-    transform_test_df = getTransformSet(test_df[[img_col]].copy(), OUTPUT_DIR_TEST, transform_type, img_dim)
-    transform_valid_df = getTransformSet(valid_df[[img_col]].copy(), OUTPUT_DIR_VALID, transform_type, img_dim)
+    transform_train_df = getTransformSet(train_df[[img_col]].copy(), OUTPUT_DIR_TRAIN, transform_type, image_size)
+    transform_test_df = getTransformSet(test_df[[img_col]].copy(), OUTPUT_DIR_TEST, transform_type, image_size)
+    transform_valid_df = getTransformSet(valid_df[[img_col]].copy(), OUTPUT_DIR_VALID, transform_type, image_size)
 
     # Get train/test/valid copies
     cols = ['Class Number', 'Center in X', 'Center in Y', 'Width', 'Height', 
@@ -87,13 +87,13 @@ def croppedOnlySpeedTransformedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_
     train_dataset = train_dataset.merge(transform_train_df, left_on = img_col, right_on = img_col, how = 'inner')
     test_dataset = test_dataset.merge(transform_test_df, left_on = img_col, right_on = img_col, how = 'inner')
     valid_dataset = valid_dataset.merge(transform_valid_df, left_on = img_col, right_on = img_col, how = 'inner')
-    
-    # Define the CNN model
-    input_layer = layers.Input(shape = (total_img_cols, 1))
-    x = layers.Conv1D(filters = 128, kernel_size = 4, activation='relu')(input_layer)
-    x = layers.MaxPooling1D(pool_size = 4)(x)
-    x = layers.Conv1D(filters = 64, kernel_size = 3, activation='relu')(x)
-    x = layers.MaxPooling1D(pool_size = 2)(x)
+
+    # Updated
+    input_layer = layers.Input(shape = (image_size, image_size, CHANNELS))
+    x = layers.Conv2D(128, (4, 4), activation='relu')(input_layer)
+    x = layers.MaxPooling2D((4, 4))(x)
+    x = layers.Conv2D(64, (3, 3), activation='relu')(x)
+    x = layers.MaxPooling2D((2, 2))(x)
     x = layers.Flatten()(x)
     x = layers.Dense(128, activation='relu')(x)
     
@@ -108,17 +108,58 @@ def croppedOnlySpeedTransformedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_
                   loss = 'sparse_categorical_crossentropy', 
                   metrics = ['accuracy']) 
     
-    # Train the model
-    epochs = 20
+    # Train - Converting a NumPy array to a Tensor
+    train_image_matrices = train_dataset[transform_col].values # Assuming 'transform_col' contains image matrices
+    train_class_labels = train_dataset['ClassID'].values
+    # Normalize pixel values
+    train_image_matrices = np.array([mat.reshape(image_size, image_size, CHANNELS) for mat in train_image_matrices])
+    train_image_matrices = train_image_matrices.astype('float32') / 255.0 
+    # Create TensorFlow datasets from NumPy arrays
+    train_image_dataset = tf.data.Dataset.from_tensor_slices(train_image_matrices)
+    train_label_dataset = tf.data.Dataset.from_tensor_slices(train_class_labels)
+    # Combine image and label datasets
+    train_full_dataset = tf.data.Dataset.zip((train_image_dataset, train_label_dataset))
+    # Shuffle, batch, and prefetch the dataset for training
+    train_full_dataset = train_full_dataset.shuffle(buffer_size = len(train_image_matrices)).batch(BS).prefetch(tf.data.AUTOTUNE)
 
-    history = model.fit(x = train_dataset[transform_cols], y = train_dataset['ClassID'], 
-                        epochs = epochs, validation_data = (valid_dataset[transform_cols], valid_dataset['ClassID']))
+    # Valid - Converting a NumPy array to a Tensor
+    val_image_matrices = valid_dataset[transform_col].values
+    val_class_labels = valid_dataset['ClassID'].values
+    # Normalize pixel values
+    val_image_matrices = np.array([mat.reshape(image_size, image_size, CHANNELS) for mat in val_image_matrices])
+    val_image_matrices = val_image_matrices.astype('float32') / 255.0
+    # Create TensorFlow datasets from NumPy arrays
+    val_image_dataset = tf.data.Dataset.from_tensor_slices(val_image_matrices)
+    val_label_dataset = tf.data.Dataset.from_tensor_slices(val_class_labels)
+    # Combine image and label datasets
+    val_full_dataset = tf.data.Dataset.zip((val_image_dataset, val_label_dataset))
+    # Shuffle, batch, and prefetch the dataset for training
+    val_full_dataset = val_full_dataset.batch(BS) # No need to shuffle for validation
+
+    # Test - Converting a NumPy array to a Tensor
+    test_image_matrices = test_dataset[transform_col].values
+    test_class_labels = test_dataset['ClassID'].values
+    # Normalize pixel values
+    test_image_matrices = np.array([mat.reshape(image_size, image_size, CHANNELS) for mat in test_image_matrices])
+    test_image_matrices = test_image_matrices.astype('float32') / 255.0
+    # Create TensorFlow datasets from NumPy arrays
+    test_image_dataset = tf.data.Dataset.from_tensor_slices(test_image_matrices)
+    test_label_dataset = tf.data.Dataset.from_tensor_slices(test_class_labels)
+    # Combine image and label datasets
+    test_full_dataset = tf.data.Dataset.zip((test_image_dataset, test_label_dataset))
+    # Shuffle, batch, and prefetch the dataset for training
+    test_full_dataset = test_full_dataset.batch(BS) # No need to shuffle for test
+
+    # Train the model using the prepared dataset
+    epochs = 20
+    history = model.fit(train_full_dataset, epochs = epochs, validation_data = val_full_dataset)
 
     # Evaluate the model on the training set
-    pred_on_val = model.evaluate(x = valid_dataset[transform_cols], y = valid_dataset['ClassID'], verbose = 1, return_dict = True)
-    pred_on_train = model.evaluate(x = train_dataset[transform_cols], y = train_dataset['ClassID'], verbose = 1, return_dict = True)
+    pred_on_val = model.evaluate(train_full_dataset, verbose = 1, return_dict = True)
+    pred_on_train = model.evaluate(val_full_dataset, verbose = 1, return_dict = True)
 
-    predictions = model.predict(test_dataset[transform_cols])
+    predictions = model.predict(test_full_dataset)
+
     class_id_predictions = predictions
     class_id_indices = np.argmax(class_id_predictions, axis = 1)
 

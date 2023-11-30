@@ -11,7 +11,7 @@ import time
 from openpyxl import Workbook
 from datetime import datetime
 import shutil
-from utils.transforms.transform import getTwoDHaar, getDCT2, getDFT
+from utils.transforms.transform import getTwoDHaar, getDCT2, getDCT2Color, getDFT
 
 
 def showDataSamples(directory_path):
@@ -307,7 +307,7 @@ def saveMisclassifiedImages(prediction_df, actual_col, predicted_col, filename_c
         cv.imwrite(os.path.join(output_img_filepath, filename), img)
 
 
-def add_transformed_columns_wrapper(image_dir, type, image_dim):
+def add_transformed_columns_wrapper(image_dir, type, image_dim, grayscale = False, absolute = False):
     def add_transformed_columns(row):
         """
             Get new columns (for a single row) in a transform set.
@@ -318,28 +318,27 @@ def add_transformed_columns_wrapper(image_dir, type, image_dim):
         if type == "2dhaar":
             transformed_data = getTwoDHaar(image_filename, image_dim)
         elif type == "dct2":
-            transformed_data = getDCT2(image_filename, image_dim)
+            if grayscale:
+                transformed_data = getDCT2(image_filename, image_dim)
+            else:
+                transformed_data = getDCT2Color(image_filename, image_dim, absolute)
         elif type == "dft":
             transformed_data = getDFT(image_filename, image_dim)
         # TODO: ... continue elif: 'all', 'DaubechiesWavelet'
         else:
             return row
         
-        transformed_data = transformed_data.flatten()
-        # Add columns tr_0, tr_1, ..., tr_1023 to the DataFrame
-        new_cols = {f"tr_{i}": val for i, val in enumerate(transformed_data)}
-        row = pd.concat([row, pd.Series(new_cols)])
+        row = pd.concat([row, pd.Series({"Transform Matrix": transformed_data })])
         return row
     return add_transformed_columns
 
 
-def getTransformSet(img_col_df, image_dir, type, image_dim):
+def getTransformSet(img_col_df, image_dir, type, image_dim, grayscale = False, absolute = False):
     """
-        Get a dataset containing N x N columns, where N is the dimensions of a cropped image.
-        Plus 1 extra column for the file name.
-        Here, N x N stands for the number of elements in a flattened 2D matrix, 
-        that we get after applying a transformation on an image (e.g., Discrete Cosine Transform, 2D Haar Wavelet Transform).
+        Get a dataframe where one column is 'Image Filename', 
+        and other column consists of N x N matrices, where N is the dimensions of a cropped image.
+        We get N x N matrices after applying a transformations (e.g., Discrete Cosine Transform, 2D Haar Wavelet Transform) on images.
     """
     print(f"\nGetting Transform set for {image_dir}...\n")
-    img_col_df = img_col_df.apply(add_transformed_columns_wrapper(image_dir, type, image_dim), axis=1)
+    img_col_df = img_col_df.apply(add_transformed_columns_wrapper(image_dir, type, image_dim, grayscale, absolute), axis=1)
     return img_col_df
