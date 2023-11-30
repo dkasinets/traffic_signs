@@ -40,7 +40,7 @@ import sys
 sys.path.append(f'{ROOT_DIR}/utils/')
 from utils.shared_func import showDataSamples, cropImagesAndStoreRoadSigns, getImageAndSignDimensions, writeToExcel, Timer
 from utils.shared_func import getLabeledData, resolve_duplicate_filenames, saveMisclassifiedImages
-from utils.shared_func import getTransformSet
+from utils.shared_func import getTransformSet, exportTrainTestValidDataframes
 
 
 def croppedOnlySpeedTransformedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_TRAIN, OUTPUT_DIR_TEST, OUTPUT_DIR_VALID, debug = False):
@@ -107,7 +107,9 @@ def croppedOnlySpeedTransformedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_
     model.compile(optimizer = 'adam', 
                   loss = 'sparse_categorical_crossentropy', 
                   metrics = ['accuracy']) 
-    
+    _ = model.summary()
+    print(_)
+
     # Train - Converting a NumPy array to a Tensor
     train_image_matrices = train_dataset[transform_col].values # Assuming 'transform_col' contains image matrices
     train_class_labels = train_dataset['ClassID'].values
@@ -151,12 +153,12 @@ def croppedOnlySpeedTransformedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_
     test_full_dataset = test_full_dataset.batch(BS) # No need to shuffle for test
 
     # Train the model using the prepared dataset
-    epochs = 20
+    epochs = 60
     history = model.fit(train_full_dataset, epochs = epochs, validation_data = val_full_dataset)
 
     # Evaluate the model on the training set
-    pred_on_val = model.evaluate(train_full_dataset, verbose = 1, return_dict = True)
-    pred_on_train = model.evaluate(val_full_dataset, verbose = 1, return_dict = True)
+    pred_on_val = model.evaluate(val_full_dataset, verbose = 1, return_dict = True)
+    pred_on_train = model.evaluate(train_full_dataset, verbose = 1, return_dict = True)
 
     predictions = model.predict(test_full_dataset)
 
@@ -287,7 +289,7 @@ def croppedOnlySpeedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_TRAIN, OUTP
                   metrics = ['accuracy']) 
     
     # Train the model
-    epochs = 20
+    epochs = 60
     history = model.fit(train_generator, epochs=epochs, validation_data=validation_generator)
 
     # Make predictions on the test set
@@ -360,7 +362,7 @@ def croppedOnlySpeedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_TRAIN, OUTP
     return prediction_df, evaluate_info_df
 
 
-def runCroppedOnlySpeedSigns(oversample = False, apply_transform = False):
+def runCroppedOnlySpeedSigns(oversample = False, apply_transform = False, export_input_dataframes = False):
     """
         Within Class (prohibitory) Prediction CNN Model using Cropped images
         Speed Signs Only
@@ -437,6 +439,8 @@ def runCroppedOnlySpeedSigns(oversample = False, apply_transform = False):
     output_name = f"cropped_only_Speed{'_applied_transform' if apply_transform else ''}" # It can be part of a file name or folder name
     writeToExcel(prediction_df, evaluate_info_df, SPEED_ONLY_PRESENT_EXCEL, OUTPUT_DIR_TEST = None, name = output_name)
     saveMisclassifiedImages(prediction_df, actual_col = '(Actual) ClassID', predicted_col = '(Predicted) ClassID', filename_col = 'Image Filename', input_test_dir = OUTPUT_DIR_TEST_CROPPED_SPEED_ONLY, output_img_dir = SPEED_ONLY_PRESENT_IMG, name = output_name)
+    if export_input_dataframes: 
+        exportTrainTestValidDataframes(filtered_train_df, filtered_test_df, filtered_val_df, SPEED_ONLY_PRESENT_EXCEL)
 
 
 def main(debug):

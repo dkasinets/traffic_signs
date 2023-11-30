@@ -95,7 +95,7 @@ def getTestData(labels, ROOT_DIR, DATA_DIR):
     return tDS
 
 
-def cropImagesAndStoreRoadSigns(df, image_dir, output_dir):
+def cropImagesAndStoreRoadSigns(df, image_dir, output_dir, grayscale = False):
     """
         Using a dataset of images and 
         a DataFrame containing bounding box information, 
@@ -113,6 +113,8 @@ def cropImagesAndStoreRoadSigns(df, image_dir, output_dir):
     for index, row in df.iterrows():
         image_filename = os.path.join(image_dir, f"{os.path.splitext(row['Text Filename'])[0]}.jpg")
         img = cv.imread(image_filename)
+        if grayscale:
+            img = cv.cvtColor(img, cv.COLOR_BGR2GRAY) # Convert to grayscale
 
         # Extract bounding box coordinates
         x_min = int((row['Center in X'] - (row['Width'] / 2)) * img.shape[1])
@@ -327,7 +329,7 @@ def add_transformed_columns_wrapper(image_dir, type, image_dim, grayscale = Fals
         # TODO: ... continue elif: 'all', 'DaubechiesWavelet'
         else:
             return row
-        
+
         row = pd.concat([row, pd.Series({"Transform Matrix": transformed_data })])
         return row
     return add_transformed_columns
@@ -342,3 +344,12 @@ def getTransformSet(img_col_df, image_dir, type, image_dim, grayscale = False, a
     print(f"\nGetting Transform set for {image_dir}...\n")
     img_col_df = img_col_df.apply(add_transformed_columns_wrapper(image_dir, type, image_dim, grayscale, absolute), axis=1)
     return img_col_df
+
+
+def exportTrainTestValidDataframes(train_df, test_df, val_df, PRESENT_EXCEL):
+    """ Export train/test/valid DataFrame as csv files. """
+    selected_columns = ['Class Number', 'Image Filename', 'Class Label', 'ClassID', 'ClassIdDesc', 'Image Height', 'Image Width']
+    # Set index=False to exclude the index column
+    train_df[selected_columns].to_csv(f"{PRESENT_EXCEL}/train.csv", index = False)
+    test_df[selected_columns].to_csv(f"{PRESENT_EXCEL}/test.csv", index = False)
+    val_df[selected_columns].to_csv(f"{PRESENT_EXCEL}/val.csv", index = False)

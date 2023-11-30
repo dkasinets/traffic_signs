@@ -484,8 +484,14 @@ def plotDaubechiesWavelet(filepath, image_dim = 128):
 # TODO: OK - Fed anyway. Need to Normalize (0 - 255) - to better represent the data. (Just for visuals, no need to feed it to model).
 # TODO: OK. Remove top left [0, 0] DC coefficient (average of energy). (Before feeding to model).  
 # TODO: OK. Try taking an absolute value. Check if accuracy is similar.
-# TODO: 
+
+# TODO: Done. Send data/dataframe of raw images to Amir
+# TODO: Create a Flow of steps for each of the below experiments 
+# TODO: Epochs: 40 -> 60 = Put All available data in train (master = total - Try all data. Make function to take specific images from master to get Test. 
+# TODO: Upcoming: 5-Fold... Train and Test only   
+
 # Try on Speed only set:  
+# 20 Epochs:
 # - 2d cnn (128x128), (raw image) - OK - 0% (valid), 0.69% (train), 81.4815% (test)
 # - 2d cnn (32x32), (raw image) - OK - 0% (valid), 0% (train), 29.6296%% (test)
 # Try this (Need to compare apples to apples):
@@ -493,7 +499,7 @@ def plotDaubechiesWavelet(filepath, image_dim = 128):
 # - 2d cnn (128x128), with dct (non - flattened) - OK - 82.23% (valid), 4.1667% (train), 50.0%% (test)
 # - 2d cnn (128x128), with dct (non - flattened, no -  DC coefficient) - OK - 85.3659% (valid), 4.1667%% (train), 53.7037%% (test)
 # - 2d cnn (32x32), with dct (non - flattened) - OK - 69.6864% (valid), 11.1111% (train), 55.5556% (test)
-# color (no -  DC coefficient):
+# color (RGB) (no -  DC coefficient):
 # - 2d cnn (128x128), with dct (non - flattened) - OK - 94.0767% (valid), 2.7778% (train), 62.963% (test)
 # - 2d cnn (32x32), with dct (non - flattened) - OK - 86.4111% (valid), 6.9444% (train), 74.0741% (test)
 # - 2d cnn (128x128), with dct (non - flattened, absolute value) - OK - 65.5052% (valid), 4.1667% (train), 48.1481% (test)
