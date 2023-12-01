@@ -5,12 +5,14 @@ import pandas as pd
 import time
 import matplotlib.pyplot as plt
 import os
+from PIL import Image
 import cv2 as cv
 from sklearn.metrics import accuracy_score
 import time
 from openpyxl import Workbook
 from datetime import datetime
 import shutil
+from sklearn.model_selection import train_test_split
 from utils.transforms.transform import getTwoDHaar, getDCT2, getDCT2Color, getDFT
 
 
@@ -253,16 +255,23 @@ def getLabeledData(root_dir, data_dir):
     train_df = getTrainData(labels, root_dir, data_dir)
     test_df = getTestData(labels, root_dir, data_dir)
 
-    print("Append data to train & test sets...\n")
-    train_df_appended = train_df.merge(all_data, left_on = 'Image Filename', right_on = 'ImgNo', how = 'left')
+    # TODO: Testing purposes: Merge and split again 
+    # TODO: rework 
+    all_df = pd.concat(([train_df, test_df]))
+    all_df_appended = all_df.merge(all_data, left_on = 'Image Filename', right_on = 'ImgNo', how = 'left')
     # Drop the duplicate 'ImgNo', 'Class labels' column
-    train_df_appended = train_df_appended.drop(columns = ['ImgNo', 'Class labels', 'ClassLabels'])
+    all_df_appended = all_df_appended.drop(columns = ['ImgNo', 'Class labels', 'ClassLabels'])
 
-    test_df_appended = test_df.merge(all_data, left_on = 'Image Filename', right_on = 'ImgNo', how = 'left')
-    # Drop the duplicate 'ImgNo', 'Class labels' column
-    test_df_appended = test_df_appended.drop(columns = ['ImgNo', 'Class labels', 'ClassLabels'])
+    y_train = all_df_appended['ClassID']
+    x_train = all_df_appended.drop('ClassID', axis=1)
+    x_train, x_test, y_train, y_test = train_test_split(x_train, y_train, test_size=0.2, stratify=y_train, random_state = 42)
 
-    return train_df_appended, test_df_appended
+    train_df = pd.concat([x_train, pd.DataFrame(y_train, columns=['ClassID'])], axis=1)
+    test_df = pd.concat([x_test, pd.DataFrame(y_test, columns=['ClassID'])], axis=1)
+    
+    print(test_df)
+    print("test_df Here!!!")
+    return train_df, test_df
 
 
 def resolve_duplicate_filenames(df, filename_column):
@@ -353,3 +362,42 @@ def exportTrainTestValidDataframes(train_df, test_df, val_df, PRESENT_EXCEL):
     train_df[selected_columns].to_csv(f"{PRESENT_EXCEL}/train.csv", index = False)
     test_df[selected_columns].to_csv(f"{PRESENT_EXCEL}/test.csv", index = False)
     val_df[selected_columns].to_csv(f"{PRESENT_EXCEL}/val.csv", index = False)
+
+
+def getImagesAsPixelDataFrame(df, image_size, OUTPUT_DIR, grayscale = False):
+    """ 
+        Get DataFrame of image pixels. 
+        Note: Convert to grayscale first. 
+    """
+    file_list = df['Image Filename'].tolist()
+    jpg_files = [file for file in file_list if file.endswith('.jpg')]
+    image_data = []
+    for jpg_file in jpg_files:
+        file_path = os.path.join(OUTPUT_DIR, jpg_file)
+        img = cv.imread(file_path)  # Load the original image
+        img = cv.cvtColor(img, cv.COLOR_BGR2RGB)  # Convert from BGR to RGB
+        img = cv.resize(img, (image_size, image_size), interpolation = cv.INTER_AREA)
+
+        if grayscale: 
+            img = cv.cvtColor(img, cv.COLOR_BGR2GRAY) # Convert to grayscale
+            img_data = list(img.astype(float).flatten())
+            img_data.insert(0, jpg_file)
+        else:
+            # Split the resized image into its color channels
+            red_channel, green_channel, blue_channel = cv.split(img)
+            red = red_channel.astype(float).flatten()
+            green = green_channel.astype(float).flatten()
+            blue = blue_channel.astype(float).flatten()
+            img_data = list(np.concatenate((red, green, blue)))
+            img_data.insert(0, jpg_file)
+
+        image_data.append(img_data)
+    
+    if grayscale:
+        columns = ['Filename'] + [f"Pixel_{i + 1}" for i in range(image_size * image_size)]
+    else:
+        red_cols = [f"red_Pixel_{i + 1}" for i in range(image_size * image_size)] 
+        green_cols = [f"green_Pixel_{i + 1}" for i in range(image_size * image_size)]
+        blue_cols = [f"blue_Pixel_{i + 1}" for i in range(image_size * image_size)]
+        columns = ['Filename'] + red_cols + green_cols + blue_cols
+    return pd.DataFrame(image_data, columns = columns)

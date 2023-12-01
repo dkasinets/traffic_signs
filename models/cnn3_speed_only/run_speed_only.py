@@ -9,6 +9,7 @@ from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 from imblearn.over_sampling import RandomOverSampler
+from sklearn.model_selection import StratifiedKFold
 
 # Global Variables
 ROOT_DIR = "/Users/Kasinets/Dropbox/Mac/Desktop/SP22_JHU/Rodriguez/TRAFFIC_SIGNS/traffic_signs"
@@ -41,6 +42,7 @@ sys.path.append(f'{ROOT_DIR}/utils/')
 from utils.shared_func import showDataSamples, cropImagesAndStoreRoadSigns, getImageAndSignDimensions, writeToExcel, Timer
 from utils.shared_func import getLabeledData, resolve_duplicate_filenames, saveMisclassifiedImages
 from utils.shared_func import getTransformSet, exportTrainTestValidDataframes
+from utils.shared_func import getImagesAsPixelDataFrame
 
 
 def croppedOnlySpeedTransformedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_TRAIN, OUTPUT_DIR_TEST, OUTPUT_DIR_VALID, debug = False):
@@ -211,7 +213,7 @@ def croppedOnlySpeedTransformedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_
     return prediction_df, evaluate_info_df
 
 
-def croppedOnlySpeedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_TRAIN, OUTPUT_DIR_TEST, OUTPUT_DIR_VALID, debug = False):
+def croppedOnlySpeedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_TRAIN, OUTPUT_DIR_TEST, OUTPUT_DIR_VALID, k_fold = False, grayscale = False, debug = False):
     """
         Goal: Predict 8 Speed Classes.
 
@@ -232,44 +234,77 @@ def croppedOnlySpeedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_TRAIN, OUTP
     train_dataset = train_df[cols].copy()
     test_dataset = test_df[cols].copy()
     valid_dataset = valid_df[cols].copy()
-
+    
     # Encode ClassID
     encoder_train, encoder_test, encoder_valid = LabelEncoder(), LabelEncoder(), LabelEncoder()
     train_dataset['ClassID'] = encoder_train.fit_transform(train_dataset['ClassID'])
     test_dataset['ClassID'] = encoder_test.fit_transform(test_dataset['ClassID'])
     valid_dataset['ClassID'] = encoder_valid.fit_transform(valid_dataset['ClassID'])
+    all_dataset = pd.concat(([train_dataset, test_dataset, valid_dataset]))
 
-    tDIR, sDIR, vDIR = OUTPUT_DIR_TRAIN, OUTPUT_DIR_TEST, OUTPUT_DIR_VALID
-    BS, image_size = 64, (128, 128) # batch size; image dimensions required by pretrained model
+    # Define image dimension, number of unique classes, and a list of pixel columns
+    BS, IMAGE_DIM = 128, 40
+    if grayscale:
+        CHANNELS = 1
+        pixel_cols = [f"Pixel_{i + 1}" for i in range(IMAGE_DIM * IMAGE_DIM)]
+    else:
+        CHANNELS = 3
+        red_pixel_cols = [f"red_Pixel_{i + 1}" for i in range(IMAGE_DIM * IMAGE_DIM)]
+        green_pixel_cols = [f"green_Pixel_{i + 1}" for i in range(IMAGE_DIM * IMAGE_DIM)]
+        blue_pixel_cols = [f"blue_Pixel_{i + 1}" for i in range(IMAGE_DIM * IMAGE_DIM)]
+    
+    # Get images as pixels 
+    train_pixels_df = getImagesAsPixelDataFrame(df = train_dataset, image_size = IMAGE_DIM, OUTPUT_DIR = OUTPUT_DIR_TRAIN, grayscale = grayscale)
+    train_dataset = pd.merge(train_dataset, train_pixels_df, left_on='Image Filename', right_on='Filename', how='inner')
+    train_dataset.drop('Filename', axis = 1, inplace = True)
 
-    # Data preprocessing and augmentation
-    train_datagen = ImageDataGenerator(rescale = 1.0 / 255.0)
-    train_generator = train_datagen.flow_from_dataframe(
-        dataframe = train_dataset,
-        directory = tDIR,
-        x_col = "Image Filename", # Column containing image filenames
-        y_col = ["ClassID"],
-        target_size = image_size,
-        batch_size = BS,
-        class_mode = 'other',
-        shuffle = True,
-        # subset = 'training'
-    )
-    valid_datagen = ImageDataGenerator(rescale = 1.0 / 255.0)
-    validation_generator = valid_datagen.flow_from_dataframe(
-        dataframe = valid_dataset,
-        directory = vDIR,
-        x_col = "Image Filename",
-        y_col = ["ClassID"],
-        target_size = image_size,
-        batch_size = BS,
-        class_mode='other',
-        shuffle = True,
-        # subset='validation'
-    )
+    test_pixels_df = getImagesAsPixelDataFrame(df = test_dataset, image_size = IMAGE_DIM, OUTPUT_DIR = OUTPUT_DIR_TEST, grayscale = grayscale)
+    test_dataset = pd.merge(test_dataset, test_pixels_df, left_on='Image Filename', right_on='Filename', how='inner')
+    test_dataset.drop('Filename', axis = 1, inplace = True)
+
+    valid_pixels_df = getImagesAsPixelDataFrame(df = valid_dataset, image_size = IMAGE_DIM, OUTPUT_DIR = OUTPUT_DIR_VALID, grayscale = grayscale)
+    valid_dataset = pd.merge(valid_dataset, valid_pixels_df, left_on='Image Filename', right_on='Filename', how='inner')
+    valid_dataset.drop('Filename', axis = 1, inplace = True)
+
+    # Reshape and split into X and y
+    # train
+    y_train = train_dataset['ClassID'].values
+    if grayscale:
+        x_train = train_dataset[pixel_cols].values.reshape(-1, IMAGE_DIM, IMAGE_DIM, CHANNELS)
+    else:
+        red_x_train = train_dataset[red_pixel_cols].values.reshape(-1, IMAGE_DIM, IMAGE_DIM, 1)
+        green_x_train = train_dataset[green_pixel_cols].values.reshape(-1, IMAGE_DIM, IMAGE_DIM, 1)
+        blue_x_train = train_dataset[blue_pixel_cols].values.reshape(-1, IMAGE_DIM, IMAGE_DIM, 1)
+        x_train = np.concatenate((red_x_train, green_x_train, blue_x_train), axis = CHANNELS)
+    x_train = x_train.astype('float32') / 255.0
+
+    # test
+    y_test = test_dataset['ClassID'].values
+    if grayscale:
+        x_test = test_dataset[pixel_cols].values.reshape(-1, IMAGE_DIM, IMAGE_DIM, CHANNELS)
+    else:
+        red_x_test = test_dataset[red_pixel_cols].values.reshape(-1, IMAGE_DIM, IMAGE_DIM, 1)
+        green_x_test = test_dataset[green_pixel_cols].values.reshape(-1, IMAGE_DIM, IMAGE_DIM, 1)
+        blue_x_test = test_dataset[blue_pixel_cols].values.reshape(-1, IMAGE_DIM, IMAGE_DIM, 1)
+        x_test = np.concatenate((red_x_test, green_x_test, blue_x_test), axis = CHANNELS)
+    x_test = x_test.astype('float32') / 255.0
+
+    # valid
+    y_valid = valid_dataset['ClassID'].values
+    if grayscale:
+        x_valid = valid_dataset[pixel_cols].values.reshape(-1, IMAGE_DIM, IMAGE_DIM, CHANNELS)
+    else:
+        red_x_valid = valid_dataset[red_pixel_cols].values.reshape(-1, IMAGE_DIM, IMAGE_DIM, 1)
+        green_x_valid = valid_dataset[green_pixel_cols].values.reshape(-1, IMAGE_DIM, IMAGE_DIM, 1)
+        blue_x_valid = valid_dataset[blue_pixel_cols].values.reshape(-1, IMAGE_DIM, IMAGE_DIM, 1)
+        x_valid = np.concatenate((red_x_valid, green_x_valid, blue_x_valid), axis = CHANNELS)
+    x_valid = x_valid.astype('float32') / 255.0
+
+    # Model
+    image_size = (IMAGE_DIM, IMAGE_DIM) # image dimensions required by pretrained model
 
     # Define the CNN model
-    input_layer = layers.Input(shape = (image_size[0], image_size[1], 3))
+    input_layer = layers.Input(shape = (image_size[0], image_size[1], CHANNELS))
     x = layers.Conv2D(128, (4, 4), activation='relu')(input_layer)
     x = layers.MaxPooling2D((4, 4))(x)
     x = layers.Conv2D(64, (3, 3), activation='relu')(x)
@@ -278,7 +313,7 @@ def croppedOnlySpeedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_TRAIN, OUTP
     x = layers.Dense(128, activation='relu')(x)
     
     # output layer
-    class_id_head = layers.Dense(12, activation = 'softmax')(x)
+    class_id_head = layers.Dense(8, activation = 'softmax')(x)
 
     # Create the model
     model = keras.Model(inputs = input_layer, outputs = [class_id_head])
@@ -289,27 +324,14 @@ def croppedOnlySpeedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_TRAIN, OUTP
                   metrics = ['accuracy']) 
     
     # Train the model
-    epochs = 60
-    history = model.fit(train_generator, epochs=epochs, validation_data=validation_generator)
-
-    # Make predictions on the test set
-    test_datagen = ImageDataGenerator(rescale = 1.0/255.0)
-    test_generator = test_datagen.flow_from_dataframe(
-        dataframe = test_dataset,
-        directory = sDIR,
-        x_col = "Image Filename",
-        y_col = ["ClassID"],
-        target_size = image_size,
-        batch_size = BS,
-        class_mode='other',
-        shuffle = False,
-    )
+    epochs = 100
+    history = model.fit(x_train, y_train, batch_size = BS, epochs = epochs, validation_data=(x_valid, y_valid))
 
     # Evaluate the model on the training set
-    pred_on_val = model.evaluate(validation_generator, verbose = 1, return_dict = True)
-    pred_on_train = model.evaluate(train_generator, verbose = 1, return_dict = True)
+    pred_on_val = model.evaluate(x_valid, y_valid, verbose = 1, return_dict = True)
+    pred_on_train = model.evaluate(x_train, y_train, verbose = 1, return_dict = True)
 
-    predictions = model.predict(test_generator)
+    predictions = model.predict(x_test)
     class_id_predictions = predictions
     class_id_indices = np.argmax(class_id_predictions, axis = 1)
 
@@ -359,10 +381,27 @@ def croppedOnlySpeedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_TRAIN, OUTP
                                      'Class Counts (Test set)': str(test_class_counts_dict),
                                      'Total signs (in Valid set)': str(valid_dataset.shape[0]),
                                      'Class Counts (Valid set)': str(valid_class_counts_dict),})
+    
+    if k_fold:
+        print("\n Run K-fold")
+        X, y = np.concatenate((x_train, x_test, x_valid), axis=0), np.concatenate((y_train, y_test, y_valid), axis=0)
+        kFold = StratifiedKFold(n_splits = 5)
+        scores = []
+        for train, test in kFold.split(X, y):
+            _ = model.fit(X[train], y[train], batch_size = BS, epochs = epochs, validation_data=(X[test], y[test]))
+            k_fold_pred = model.evaluate(X[test], y[test], verbose = 1, return_dict = True)
+            print("k_fold_pred: ", k_fold_pred['accuracy'])
+            scores.append(k_fold_pred['accuracy'])
+        
+        scores_formatted = [f"{round(s * 100, 4)}%" for s in scores]
+        mean_score_formatted = f"{round(np.mean(scores) * 100, 4)}%"
+        evaluate_info_df["Stratified 5-Fold"] = str(f"5-Fold: {scores_formatted}, Mean: {mean_score_formatted}")
+        print(f"5-Fold: {scores_formatted}, Mean: {mean_score_formatted}")
+    
     return prediction_df, evaluate_info_df
 
 
-def runCroppedOnlySpeedSigns(oversample = False, apply_transform = False, export_input_dataframes = False):
+def runCroppedOnlySpeedSigns(oversample = False, apply_transform = False, export_input_dataframes = False, k_fold = False, grayscale = False):
     """
         Within Class (prohibitory) Prediction CNN Model using Cropped images
         Speed Signs Only
@@ -378,8 +417,8 @@ def runCroppedOnlySpeedSigns(oversample = False, apply_transform = False, export
     filtered_train_df = filtered_train_df.loc[filtered_train_df['ClassID'].isin([0, 1, 2, 3, 4, 5, 7, 8])]
     filtered_test_df = filtered_test_df.loc[filtered_test_df['ClassID'].isin([0, 1, 2, 3, 4, 5, 7, 8])]
 
-    print("\nApply over-sampling...")
     if oversample:
+        print("\nApply over-sampling...")
         print("\nClass distribution (Before over-sampling): ")
         class_dist_before = {class_name: count for class_name, count in filtered_train_df['ClassID'].value_counts().items()}
         print(class_dist_before)
@@ -431,7 +470,7 @@ def runCroppedOnlySpeedSigns(oversample = False, apply_transform = False, export
     if apply_transform:
         prediction_df, evaluate_info_df = croppedOnlySpeedTransformedCNNModel(filtered_train_df, filtered_test_df, filtered_val_df, OUTPUT_DIR_TRAIN_CROPPED_SPEED_ONLY, OUTPUT_DIR_TEST_CROPPED_SPEED_ONLY, OUTPUT_DIR_VALID_CROPPED_SPEED_ONLY, debug = True)
     else:
-        prediction_df, evaluate_info_df = croppedOnlySpeedCNNModel(filtered_train_df, filtered_test_df, filtered_val_df, OUTPUT_DIR_TRAIN_CROPPED_SPEED_ONLY, OUTPUT_DIR_TEST_CROPPED_SPEED_ONLY, OUTPUT_DIR_VALID_CROPPED_SPEED_ONLY, debug = True)
+        prediction_df, evaluate_info_df = croppedOnlySpeedCNNModel(filtered_train_df, filtered_test_df, filtered_val_df, OUTPUT_DIR_TRAIN_CROPPED_SPEED_ONLY, OUTPUT_DIR_TEST_CROPPED_SPEED_ONLY, OUTPUT_DIR_VALID_CROPPED_SPEED_ONLY, k_fold, grayscale, debug = True)
     
     runtime = tmr.ShowTime() # End timer.
     evaluate_info_df['runtime'] = str(runtime)

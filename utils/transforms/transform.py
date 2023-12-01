@@ -486,6 +486,8 @@ def plotDaubechiesWavelet(filepath, image_dim = 128):
 # TODO: OK. Try taking an absolute value. Check if accuracy is similar.
 
 # TODO: Done. Send data/dataframe of raw images to Amir
+# TODO: Done. Fix validation/train issues (by looking at Amir's code example)
+
 # TODO: Create a Flow of steps for each of the below experiments 
 # TODO: Epochs: 40 -> 60 = Put All available data in train (master = total - Try all data. Make function to take specific images from master to get Test. 
 # TODO: Upcoming: 5-Fold... Train and Test only   

@@ -25,17 +25,17 @@ def main(debug):
 
     # CNN #1
     # Number of classes: 4
-    runCroppedOnly(oversample = False) # True is better (gives higher accuracy)
+    # runCroppedOnly(oversample = False) # True is better (gives higher accuracy)
 
     # CNN #2
     # Number of classes: 5 
     # NOTE: Speed signs (with different speed limits) are aggregated as one class of speed sign (i.e., ClassID = 999).
-    runCroppedOnlyProhibitory(oversample = False) # True is better (gives higher accuracy)
+    # runCroppedOnlyProhibitory(oversample = False) # True is better (gives higher accuracy)
 
     # CNN #3
     # Number of classes: 8 
     # NOTE: Here, we predict speed signs only.
-    runCroppedOnlySpeedSigns(oversample = False, apply_transform = False, export_input_dataframes = False)
+    runCroppedOnlySpeedSigns(oversample = False, apply_transform = False, export_input_dataframes = False, k_fold = True, grayscale = False)
 
     tmr.ShowTime() # End timer.
 
