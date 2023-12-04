@@ -59,7 +59,7 @@ def TwoDHaarTransform(Im, L):
     return waveletIm
 
 
-def getTwoDHaar(filepath, image_dim = 128):
+def getTwoDHaar(filepath, image_dim = 40):
     """
         Given an image (i.e., either RGB or grayscale), 
         return a 2D matrix (2D Haar Wavelet Transform of grayscale image). 
@@ -85,7 +85,7 @@ def getTwoDHaar(filepath, image_dim = 128):
     return np.abs(waveletIm)
 
 
-def plotTwoDHaar(filepath, image_dim = 128):
+def plotTwoDHaar(filepath, image_dim = 40):
     """
         Display 2D Haar Wavelet Transform (of grayscale image).
 
@@ -154,63 +154,22 @@ def NPointDCT2(N):
     return NPDCT
 
 
-def getDCT2Color(filepath, image_dim = 128, absolute = False):
-    """
-    Given an RGB image
-    return a Discrete Cosine Transform of each color channel. 
-
-    NOTE: 
-    - Set the element at position (0, 0) to 0, to remove DC coefficient (average of energy)
-    - Apply absolute value to all elements in the array
-
-    Inputs:
-        filepath is the input filepath
-        image_dim is an integer dimension of a square image (i.e., at the input filepath)
-    
-    Output:
-        3D numpy array containing DCT matrices for each color channel
-    """
-    Im = cv.imread(filepath)  # Load the original image
-    Im = cv.cvtColor(Im, cv.COLOR_BGR2RGB)  # Convert from BGR to RGB
-
-    # Resize the image
-    Im_resized = cv.resize(Im, (image_dim, image_dim), interpolation = cv.INTER_AREA)
-    
-    # Split the resized image into its color channels
-    red_channel, green_channel, blue_channel = cv.split(Im_resized)
-
-    # Perform the DCT2 Transform for each color channel
-    DCT = NPointDCT2(image_dim)
-    red_DCT = np.matmul(np.matmul(DCT, red_channel.astype(float)), np.transpose(DCT))
-    green_DCT = np.matmul(np.matmul(DCT, green_channel.astype(float)), np.transpose(DCT))
-    blue_DCT = np.matmul(np.matmul(DCT, blue_channel.astype(float)), np.transpose(DCT))
-
-    # Set the element at position (0, 0) to 0
-    # Remove top left [0, 0] DC coefficient (average of energy). (Before feeding to model).  
-    red_DCT[0, 0] = 0
-    green_DCT[0, 0] = 0
-    blue_DCT[0, 0] = 0
-
-    # Apply absolute value to all elements in the array
-    if absolute:
-        red_DCT, green_DCT, blue_DCT = np.abs(red_DCT), np.abs(green_DCT), np.abs(blue_DCT)
-
-    # Stack the DCT matrices for each channel into a 3D numpy array
-    dct_matrices = np.stack((red_DCT, green_DCT, blue_DCT), axis = -1)
-    return dct_matrices
-
-
-def getDCT2(filepath, image_dim = 128):
+def getDCT2(filepath, image_dim = 40, grayscale = False, absolute = False):
     """
         Given an image (i.e., either RGB or grayscale), 
-        return a 2D matrix (Discrete Cosine Transform of grayscale image). 
+        Resize and return a matrix (Discrete Cosine Transform of an image). 
+
+        NOTE: 
+        - Set the element at position (0, 0) to 0, to remove DC coefficient (average of energy)
+        - (if needed) This function allows us to apply absolute value to all elements (i.e., display purposes)
 
         Inputs:
             filepath is the input filepath
             image_dim is an integer dimension of a square image (i.e., at the input filepath)
         
         Output:
-            2D matrix (Discrete Cosine Transform of grayscale image)
+            Discrete Cosine Transform (DCT) of an image (i.e., (image_dim x image_dim x 1) shape), 
+            or DCT of an image containing each color channel (i.e., (image_dim x image_dim x 3) shape)
     """
     Im = cv.imread(filepath) # Load (and display) the original image
     Im = cv.cvtColor(Im, cv.COLOR_BGR2RGB) # opencv uses bgr color mode and matplotlib uses rgb color mode
@@ -219,17 +178,33 @@ def getDCT2(filepath, image_dim = 128):
     # cv.INTER_AREA - resampling using pixel area relation. It may be a preferred method for image decimation, as it gives moire'-free results.
     # But when the image is zoomed, it is similar to the cv.INTER_NEAREST method.
     Im_resized = cv.resize(Im, (image_dim, image_dim), interpolation = cv.INTER_AREA) # INTER_LINEAR - bilinear interpolation
-    Im = cv.cvtColor(Im_resized, cv.COLOR_BGR2GRAY) # Convert to grayscale
-    DCT = NPointDCT2(image_dim) # Perform the DCT2 Transform
+    DCT = NPointDCT2(image_dim)
+    if grayscale:
+        Im = cv.cvtColor(Im_resized, cv.COLOR_BGR2GRAY) # Convert to grayscale
+        # Perform the DCT2 Transform
+        res_DCT = np.matmul(np.matmul(DCT, Im.astype(float)), np.transpose(DCT))
+        # Before feeding to model, Remove top left [0, 0] DC coefficient (average of energy). 
+        res_DCT[0, 0] = 0
+        # Apply absolute value 
+        if absolute:
+            res_DCT = np.abs(res_DCT)
+        return res_DCT
+    else:
+        # Split the resized image into its color channels
+        red_channel, green_channel, blue_channel = cv.split(Im_resized)
+        # Perform the DCT2 Transform for each color channel
+        red_DCT = np.matmul(np.matmul(DCT, red_channel.astype(float)), np.transpose(DCT))
+        green_DCT = np.matmul(np.matmul(DCT, green_channel.astype(float)), np.transpose(DCT))
+        blue_DCT = np.matmul(np.matmul(DCT, blue_channel.astype(float)), np.transpose(DCT))
+        # Before feeding to model, Remove top left [0, 0] DC coefficient (average of energy).  
+        red_DCT[0, 0], green_DCT[0, 0], blue_DCT[0, 0] = 0, 0, 0
+        # Apply absolute value
+        if absolute:
+            red_DCT, green_DCT, blue_DCT = np.abs(red_DCT), np.abs(green_DCT), np.abs(blue_DCT)
+        return np.stack((red_DCT, green_DCT, blue_DCT), axis = -1)
 
-    # Set the element at position (0, 0) to 0
-    # Remove top left [0, 0] DC coefficient (average of energy). (Before feeding to model).  
-    res_DCT = np.matmul(np.matmul(DCT, Im.astype(float)), np.transpose(DCT))
-    res_DCT[0, 0] = 0
-    return res_DCT
 
-
-def plotDCT2(filepath, image_dim = 128):
+def plotDCT2(filepath, image_dim = 40):
     """
         Display DCT2 Transform (of grayscale image).
 
@@ -291,7 +266,7 @@ def DFT_DS(N):
     return DFT_Matrix
 
 
-def getDFT(filepath, image_dim = 128):
+def getDFT(filepath, image_dim = 40):
     """
         Given an image (i.e., either RGB or grayscale), 
         return a 2D matrix (Discrete Fourier Transform of grayscale image). 
@@ -316,7 +291,7 @@ def getDFT(filepath, image_dim = 128):
     return np.abs(DFT_sX)
 
 
-def plotDFT(filepath, image_dim = 128):
+def plotDFT(filepath, image_dim = 40):
     """
         Display DFT Transform (of grayscale image).
 
@@ -410,7 +385,7 @@ def DaubechiesWaveletTransform(size):
     return Daub4
 
 
-def plotDaubechiesWavelet(filepath, image_dim = 128):
+def plotDaubechiesWavelet(filepath, image_dim = 40):
     """
         Display Daubechies Wavelet Transform (of grayscale image).
 

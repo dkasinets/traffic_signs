@@ -2,7 +2,6 @@ import tensorflow as tf
 import tensorflow.keras as keras 
 import numpy as np
 import pandas as pd
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras import layers
 import random
 from sklearn.metrics import accuracy_score
@@ -27,7 +26,12 @@ VAL_SPLIT = 0.2
 TRANSFORM_TYPE_2DHAAR = "2dhaar"
 TRANSFORM_TYPE_DCT2 = "dct2"
 TRANSFORM_TYPE_DFT = "dft"
-TRANSFORM_IMG_DIMENSION = 128
+# Transform to use
+SELECTED_TRANSFORM = TRANSFORM_TYPE_DCT2
+# Define batch size, image dimension, number of epochs
+BS, IMAGE_DIM, EPOCHS = 128, 40, 100
+# Number of splits in K-Fold Cross-Validation
+K_FOLD_SPLITS = 5
 
 # NOTES: For Transformations we've got:
 # "2dhaar" - 62.963% accuracy on Test (w/ 32x32 image size)
@@ -45,7 +49,7 @@ from utils.shared_func import getTransformSet, exportTrainTestValidDataframes
 from utils.shared_func import getImagesAsPixelDataFrame
 
 
-def croppedOnlySpeedTransformedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_TRAIN, OUTPUT_DIR_TEST, OUTPUT_DIR_VALID, debug = False):
+def croppedOnlySpeedTransformedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_TRAIN, OUTPUT_DIR_TEST, OUTPUT_DIR_VALID, k_fold = False, grayscale = False, debug = False):
     """
         Goal: Predict 8 Speed Classes.
         Use transformations instead of images.
@@ -59,22 +63,21 @@ def croppedOnlySpeedTransformedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_
     random.seed(0)
     np.random.seed(0)
 
-    print("\nGet Transform Sets...")
-    img_col, transform_type = 'Image Filename', TRANSFORM_TYPE_DCT2
-    BS, image_size, CHANNELS = 64, TRANSFORM_IMG_DIMENSION, 3 # Batch size, Image dimension, Total Channels
-    transform_col = "Transform Matrix"
-    
-    # Get dataframe of size total_img_cols + 1 (i.e., for filename)
-    transform_train_df = getTransformSet(train_df[[img_col]].copy(), OUTPUT_DIR_TRAIN, transform_type, image_size)
-    transform_test_df = getTransformSet(test_df[[img_col]].copy(), OUTPUT_DIR_TEST, transform_type, image_size)
-    transform_valid_df = getTransformSet(valid_df[[img_col]].copy(), OUTPUT_DIR_VALID, transform_type, image_size)
-
-    # Get train/test/valid copies
     cols = ['Class Number', 'Center in X', 'Center in Y', 'Width', 'Height', 
             'Text Filename', 'Image Filename', 'Class Label', 'leftCol', 'topRow', 
             'rightCol', 'bottomRow', 'ClassID', 'MetaPath', 'ShapeId', 
             'ColorId', 'SignId', 'ClassIdDesc', 'Image Height', 'Image Width', 
             'Sign Height', 'Sign Width']
+
+    image_size = IMAGE_DIM # Image dimension
+    channels = 1 if grayscale else 3
+    epochs, batch_size = EPOCHS, BS
+    n_splits = K_FOLD_SPLITS
+
+    img_col, transform_col = 'Image Filename', "Transform Matrix"
+    transform_type = SELECTED_TRANSFORM
+        
+    # Get train/test/valid copies
     train_dataset = train_df[cols].copy()
     test_dataset = test_df[cols].copy()
     valid_dataset = valid_df[cols].copy()
@@ -84,14 +87,38 @@ def croppedOnlySpeedTransformedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_
     train_dataset['ClassID'] = encoder_train.fit_transform(train_dataset['ClassID'])
     test_dataset['ClassID'] = encoder_test.fit_transform(test_dataset['ClassID'])
     valid_dataset['ClassID'] = encoder_valid.fit_transform(valid_dataset['ClassID'])
+    
+    # Get transform Sets 
+    transform_train_df = getTransformSet(train_dataset[[img_col]].copy(), OUTPUT_DIR_TRAIN, transform_type, image_size, grayscale = grayscale)
+    transform_test_df = getTransformSet(test_dataset[[img_col]].copy(), OUTPUT_DIR_TEST, transform_type, image_size, grayscale = grayscale)
+    transform_valid_df = getTransformSet(valid_dataset[[img_col]].copy(), OUTPUT_DIR_VALID, transform_type, image_size, grayscale = grayscale)
 
     # Merge sets
     train_dataset = train_dataset.merge(transform_train_df, left_on = img_col, right_on = img_col, how = 'inner')
     test_dataset = test_dataset.merge(transform_test_df, left_on = img_col, right_on = img_col, how = 'inner')
     valid_dataset = valid_dataset.merge(transform_valid_df, left_on = img_col, right_on = img_col, how = 'inner')
 
-    # Updated
-    input_layer = layers.Input(shape = (image_size, image_size, CHANNELS))
+    # Reshape and split into X and y
+    # train 
+    y_train = train_dataset['ClassID'].values
+    # Normalize pixel values
+    x_train = np.array([mat.reshape(image_size, image_size, channels) for mat in train_dataset[transform_col].values])
+    x_train = x_train.astype('float32') / 255.0     
+
+    # test
+    y_test = test_dataset['ClassID'].values
+    # Normalize pixel values
+    x_test = np.array([mat.reshape(image_size, image_size, channels) for mat in test_dataset[transform_col].values])
+    x_test = x_test.astype('float32') / 255.0
+
+    # valid
+    y_valid = valid_dataset['ClassID'].values
+    # Normalize pixel values
+    x_valid = np.array([mat.reshape(image_size, image_size, channels) for mat in valid_dataset[transform_col].values])
+    x_valid = x_valid.astype('float32') / 255.0
+
+    # Define the CNN model
+    input_layer = layers.Input(shape = (image_size, image_size, channels))
     x = layers.Conv2D(128, (4, 4), activation='relu')(input_layer)
     x = layers.MaxPooling2D((4, 4))(x)
     x = layers.Conv2D(64, (3, 3), activation='relu')(x)
@@ -100,7 +127,7 @@ def croppedOnlySpeedTransformedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_
     x = layers.Dense(128, activation='relu')(x)
     
     # output layer
-    class_id_head = layers.Dense(12, activation = 'softmax')(x)
+    class_id_head = layers.Dense(8, activation = 'softmax')(x)
 
     # Create the model
     model = keras.Model(inputs = input_layer, outputs = [class_id_head])
@@ -110,60 +137,15 @@ def croppedOnlySpeedTransformedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_
                   loss = 'sparse_categorical_crossentropy', 
                   metrics = ['accuracy']) 
     _ = model.summary()
-    print(_)
 
-    # Train - Converting a NumPy array to a Tensor
-    train_image_matrices = train_dataset[transform_col].values # Assuming 'transform_col' contains image matrices
-    train_class_labels = train_dataset['ClassID'].values
-    # Normalize pixel values
-    train_image_matrices = np.array([mat.reshape(image_size, image_size, CHANNELS) for mat in train_image_matrices])
-    train_image_matrices = train_image_matrices.astype('float32') / 255.0 
-    # Create TensorFlow datasets from NumPy arrays
-    train_image_dataset = tf.data.Dataset.from_tensor_slices(train_image_matrices)
-    train_label_dataset = tf.data.Dataset.from_tensor_slices(train_class_labels)
-    # Combine image and label datasets
-    train_full_dataset = tf.data.Dataset.zip((train_image_dataset, train_label_dataset))
-    # Shuffle, batch, and prefetch the dataset for training
-    train_full_dataset = train_full_dataset.shuffle(buffer_size = len(train_image_matrices)).batch(BS).prefetch(tf.data.AUTOTUNE)
-
-    # Valid - Converting a NumPy array to a Tensor
-    val_image_matrices = valid_dataset[transform_col].values
-    val_class_labels = valid_dataset['ClassID'].values
-    # Normalize pixel values
-    val_image_matrices = np.array([mat.reshape(image_size, image_size, CHANNELS) for mat in val_image_matrices])
-    val_image_matrices = val_image_matrices.astype('float32') / 255.0
-    # Create TensorFlow datasets from NumPy arrays
-    val_image_dataset = tf.data.Dataset.from_tensor_slices(val_image_matrices)
-    val_label_dataset = tf.data.Dataset.from_tensor_slices(val_class_labels)
-    # Combine image and label datasets
-    val_full_dataset = tf.data.Dataset.zip((val_image_dataset, val_label_dataset))
-    # Shuffle, batch, and prefetch the dataset for training
-    val_full_dataset = val_full_dataset.batch(BS) # No need to shuffle for validation
-
-    # Test - Converting a NumPy array to a Tensor
-    test_image_matrices = test_dataset[transform_col].values
-    test_class_labels = test_dataset['ClassID'].values
-    # Normalize pixel values
-    test_image_matrices = np.array([mat.reshape(image_size, image_size, CHANNELS) for mat in test_image_matrices])
-    test_image_matrices = test_image_matrices.astype('float32') / 255.0
-    # Create TensorFlow datasets from NumPy arrays
-    test_image_dataset = tf.data.Dataset.from_tensor_slices(test_image_matrices)
-    test_label_dataset = tf.data.Dataset.from_tensor_slices(test_class_labels)
-    # Combine image and label datasets
-    test_full_dataset = tf.data.Dataset.zip((test_image_dataset, test_label_dataset))
-    # Shuffle, batch, and prefetch the dataset for training
-    test_full_dataset = test_full_dataset.batch(BS) # No need to shuffle for test
-
-    # Train the model using the prepared dataset
-    epochs = 60
-    history = model.fit(train_full_dataset, epochs = epochs, validation_data = val_full_dataset)
+    # Train the model
+    history = model.fit(x_train, y_train, batch_size = batch_size, epochs = epochs, validation_data=(x_valid, y_valid))
 
     # Evaluate the model on the training set
-    pred_on_val = model.evaluate(val_full_dataset, verbose = 1, return_dict = True)
-    pred_on_train = model.evaluate(train_full_dataset, verbose = 1, return_dict = True)
+    pred_on_val = model.evaluate(x_valid, y_valid, verbose = 1, return_dict = True)
+    pred_on_train = model.evaluate(x_train, y_train, verbose = 1, return_dict = True)
 
-    predictions = model.predict(test_full_dataset)
-
+    predictions = model.predict(x_test)
     class_id_predictions = predictions
     class_id_indices = np.argmax(class_id_predictions, axis = 1)
 
@@ -173,7 +155,7 @@ def croppedOnlySpeedTransformedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_
     test_dataset['ClassID'] = encoder_test.inverse_transform(test_dataset['ClassID'])
     valid_dataset['ClassID'] = encoder_valid.inverse_transform(valid_dataset['ClassID'])
 
-    # Create a DataFrame
+    # Create an Output Excel DataFrame
     prediction_df = pd.DataFrame({
         "(Predicted) ClassID" : predicted_class_id,
         "(Actual) ClassID" : test_dataset['ClassID'],
@@ -194,9 +176,11 @@ def croppedOnlySpeedTransformedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_
     print(f"ClassID Accuracy (on Valid): {round(pred_on_val['accuracy'] * 100, 4)}%")
     print(f"ClassID Accuracy (on Train): {round(pred_on_train['accuracy'] * 100, 4)}%")
     print(f"ClassID Accuracy (on Test): {round(pred_accuracy_class_id * 100, 4)}%")
+
+    print("\npredictions: ")
+    print(prediction_df)
     
-    # Save to excel
-    # Save the DataFrame to Excel
+    # More info to save to Excel (as a DataFrame)
     train_class_counts_dict = {class_name: count for class_name, count in train_dataset['ClassID'].value_counts().items()}
     test_class_counts_dict = {class_name: count for class_name, count in test_dataset['ClassID'].value_counts().items()}
     valid_class_counts_dict = {class_name: count for class_name, count in valid_dataset['ClassID'].value_counts().items()}
@@ -210,6 +194,23 @@ def croppedOnlySpeedTransformedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_
                                      'Class Counts (Test set)': str(test_class_counts_dict),
                                      'Total signs (in Valid set)': str(valid_dataset.shape[0]),
                                      'Class Counts (Valid set)': str(valid_class_counts_dict),})
+    
+    if k_fold:
+        print("\n Run K-fold")
+        X, y = np.concatenate((x_train, x_test, x_valid), axis = 0), np.concatenate((y_train, y_test, y_valid), axis = 0)
+        kFold = StratifiedKFold(n_splits = n_splits)
+        scores = []
+        for train, test in kFold.split(X, y):
+            _ = model.fit(X[train], y[train], batch_size = batch_size, epochs = epochs, validation_data=(X[test], y[test]))
+            k_fold_pred = model.evaluate(X[test], y[test], verbose = 1, return_dict = True)
+            print("k_fold_pred: ", k_fold_pred['accuracy'])
+            scores.append(k_fold_pred['accuracy'])
+        
+        scores_formatted = [f"{round(s * 100, 4)}%" for s in scores]
+        mean_score_formatted = f"{round(np.mean(scores) * 100, 4)}%"
+        evaluate_info_df["Stratified 5-Fold"] = str(f"5-Fold: {scores_formatted}, Mean: {mean_score_formatted}")
+        print(f"5-Fold: {scores_formatted}, Mean: {mean_score_formatted}")
+    
     return prediction_df, evaluate_info_df
 
 
@@ -231,6 +232,15 @@ def croppedOnlySpeedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_TRAIN, OUTP
             'rightCol', 'bottomRow', 'ClassID', 'MetaPath', 'ShapeId', 
             'ColorId', 'SignId', 'ClassIdDesc', 'Image Height', 'Image Width', 
             'Sign Height', 'Sign Width']
+    
+    image_size = IMAGE_DIM # Image dimension
+    channels = 1 if grayscale else 3
+    epochs, batch_size = EPOCHS, BS
+    n_splits = K_FOLD_SPLITS
+
+    img_col, pixels_col = 'Image Filename', 'Pixels'
+
+    # Get train/test/valid copies
     train_dataset = train_df[cols].copy()
     test_dataset = test_df[cols].copy()
     valid_dataset = valid_df[cols].copy()
@@ -240,71 +250,35 @@ def croppedOnlySpeedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_TRAIN, OUTP
     train_dataset['ClassID'] = encoder_train.fit_transform(train_dataset['ClassID'])
     test_dataset['ClassID'] = encoder_test.fit_transform(test_dataset['ClassID'])
     valid_dataset['ClassID'] = encoder_valid.fit_transform(valid_dataset['ClassID'])
-    all_dataset = pd.concat(([train_dataset, test_dataset, valid_dataset]))
 
-    # Define image dimension, number of unique classes, and a list of pixel columns
-    BS, IMAGE_DIM = 128, 40
-    if grayscale:
-        CHANNELS = 1
-        pixel_cols = [f"Pixel_{i + 1}" for i in range(IMAGE_DIM * IMAGE_DIM)]
-    else:
-        CHANNELS = 3
-        red_pixel_cols = [f"red_Pixel_{i + 1}" for i in range(IMAGE_DIM * IMAGE_DIM)]
-        green_pixel_cols = [f"green_Pixel_{i + 1}" for i in range(IMAGE_DIM * IMAGE_DIM)]
-        blue_pixel_cols = [f"blue_Pixel_{i + 1}" for i in range(IMAGE_DIM * IMAGE_DIM)]
-    
     # Get images as pixels 
-    train_pixels_df = getImagesAsPixelDataFrame(df = train_dataset, image_size = IMAGE_DIM, OUTPUT_DIR = OUTPUT_DIR_TRAIN, grayscale = grayscale)
-    train_dataset = pd.merge(train_dataset, train_pixels_df, left_on='Image Filename', right_on='Filename', how='inner')
-    train_dataset.drop('Filename', axis = 1, inplace = True)
+    pixels_train_df = getImagesAsPixelDataFrame(df = train_dataset, image_size = image_size, OUTPUT_DIR = OUTPUT_DIR_TRAIN, grayscale = grayscale)
+    pixels_test_df = getImagesAsPixelDataFrame(df = test_dataset, image_size = image_size, OUTPUT_DIR = OUTPUT_DIR_TEST, grayscale = grayscale)
+    pixels_valid_df = getImagesAsPixelDataFrame(df = valid_dataset, image_size = image_size, OUTPUT_DIR = OUTPUT_DIR_VALID, grayscale = grayscale)
 
-    test_pixels_df = getImagesAsPixelDataFrame(df = test_dataset, image_size = IMAGE_DIM, OUTPUT_DIR = OUTPUT_DIR_TEST, grayscale = grayscale)
-    test_dataset = pd.merge(test_dataset, test_pixels_df, left_on='Image Filename', right_on='Filename', how='inner')
-    test_dataset.drop('Filename', axis = 1, inplace = True)
-
-    valid_pixels_df = getImagesAsPixelDataFrame(df = valid_dataset, image_size = IMAGE_DIM, OUTPUT_DIR = OUTPUT_DIR_VALID, grayscale = grayscale)
-    valid_dataset = pd.merge(valid_dataset, valid_pixels_df, left_on='Image Filename', right_on='Filename', how='inner')
-    valid_dataset.drop('Filename', axis = 1, inplace = True)
+    # Merge sets
+    train_dataset = train_dataset.merge(pixels_train_df, left_on = img_col, right_on = img_col, how = 'inner')
+    test_dataset = test_dataset.merge(pixels_test_df, left_on = img_col, right_on = img_col, how = 'inner')
+    valid_dataset = valid_dataset.merge(pixels_valid_df, left_on = img_col, right_on = img_col, how = 'inner')
 
     # Reshape and split into X and y
     # train
     y_train = train_dataset['ClassID'].values
-    if grayscale:
-        x_train = train_dataset[pixel_cols].values.reshape(-1, IMAGE_DIM, IMAGE_DIM, CHANNELS)
-    else:
-        red_x_train = train_dataset[red_pixel_cols].values.reshape(-1, IMAGE_DIM, IMAGE_DIM, 1)
-        green_x_train = train_dataset[green_pixel_cols].values.reshape(-1, IMAGE_DIM, IMAGE_DIM, 1)
-        blue_x_train = train_dataset[blue_pixel_cols].values.reshape(-1, IMAGE_DIM, IMAGE_DIM, 1)
-        x_train = np.concatenate((red_x_train, green_x_train, blue_x_train), axis = CHANNELS)
+    x_train = np.array([mat.reshape(image_size, image_size, channels) for mat in train_dataset[pixels_col].values])
     x_train = x_train.astype('float32') / 255.0
 
     # test
     y_test = test_dataset['ClassID'].values
-    if grayscale:
-        x_test = test_dataset[pixel_cols].values.reshape(-1, IMAGE_DIM, IMAGE_DIM, CHANNELS)
-    else:
-        red_x_test = test_dataset[red_pixel_cols].values.reshape(-1, IMAGE_DIM, IMAGE_DIM, 1)
-        green_x_test = test_dataset[green_pixel_cols].values.reshape(-1, IMAGE_DIM, IMAGE_DIM, 1)
-        blue_x_test = test_dataset[blue_pixel_cols].values.reshape(-1, IMAGE_DIM, IMAGE_DIM, 1)
-        x_test = np.concatenate((red_x_test, green_x_test, blue_x_test), axis = CHANNELS)
+    x_test = np.array([mat.reshape(image_size, image_size, channels) for mat in test_dataset[pixels_col].values])
     x_test = x_test.astype('float32') / 255.0
 
     # valid
     y_valid = valid_dataset['ClassID'].values
-    if grayscale:
-        x_valid = valid_dataset[pixel_cols].values.reshape(-1, IMAGE_DIM, IMAGE_DIM, CHANNELS)
-    else:
-        red_x_valid = valid_dataset[red_pixel_cols].values.reshape(-1, IMAGE_DIM, IMAGE_DIM, 1)
-        green_x_valid = valid_dataset[green_pixel_cols].values.reshape(-1, IMAGE_DIM, IMAGE_DIM, 1)
-        blue_x_valid = valid_dataset[blue_pixel_cols].values.reshape(-1, IMAGE_DIM, IMAGE_DIM, 1)
-        x_valid = np.concatenate((red_x_valid, green_x_valid, blue_x_valid), axis = CHANNELS)
+    x_valid = np.array([mat.reshape(image_size, image_size, channels) for mat in valid_dataset[pixels_col].values])
     x_valid = x_valid.astype('float32') / 255.0
 
-    # Model
-    image_size = (IMAGE_DIM, IMAGE_DIM) # image dimensions required by pretrained model
-
     # Define the CNN model
-    input_layer = layers.Input(shape = (image_size[0], image_size[1], CHANNELS))
+    input_layer = layers.Input(shape = (image_size, image_size, channels))
     x = layers.Conv2D(128, (4, 4), activation='relu')(input_layer)
     x = layers.MaxPooling2D((4, 4))(x)
     x = layers.Conv2D(64, (3, 3), activation='relu')(x)
@@ -322,10 +296,10 @@ def croppedOnlySpeedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_TRAIN, OUTP
     model.compile(optimizer = 'adam', 
                   loss = 'sparse_categorical_crossentropy', 
                   metrics = ['accuracy']) 
+    _ = model.summary()
     
     # Train the model
-    epochs = 100
-    history = model.fit(x_train, y_train, batch_size = BS, epochs = epochs, validation_data=(x_valid, y_valid))
+    history = model.fit(x_train, y_train, batch_size = batch_size, epochs = epochs, validation_data=(x_valid, y_valid))
 
     # Evaluate the model on the training set
     pred_on_val = model.evaluate(x_valid, y_valid, verbose = 1, return_dict = True)
@@ -341,7 +315,7 @@ def croppedOnlySpeedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_TRAIN, OUTP
     test_dataset['ClassID'] = encoder_test.inverse_transform(test_dataset['ClassID'])
     valid_dataset['ClassID'] = encoder_valid.inverse_transform(valid_dataset['ClassID'])
 
-    # Create a DataFrame
+    # Create an Output Excel DataFrame
     prediction_df = pd.DataFrame({
         "(Predicted) ClassID" : predicted_class_id,
         "(Actual) ClassID" : test_dataset['ClassID'],
@@ -366,8 +340,7 @@ def croppedOnlySpeedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_TRAIN, OUTP
     print("\npredictions: ")
     print(prediction_df)
 
-    # Save to excel
-    # Save the DataFrame to Excel
+    # More info to save to Excel (as a DataFrame)
     train_class_counts_dict = {class_name: count for class_name, count in train_dataset['ClassID'].value_counts().items()}
     test_class_counts_dict = {class_name: count for class_name, count in test_dataset['ClassID'].value_counts().items()}
     valid_class_counts_dict = {class_name: count for class_name, count in valid_dataset['ClassID'].value_counts().items()}
@@ -384,11 +357,11 @@ def croppedOnlySpeedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_TRAIN, OUTP
     
     if k_fold:
         print("\n Run K-fold")
-        X, y = np.concatenate((x_train, x_test, x_valid), axis=0), np.concatenate((y_train, y_test, y_valid), axis=0)
-        kFold = StratifiedKFold(n_splits = 5)
+        X, y = np.concatenate((x_train, x_test, x_valid), axis = 0), np.concatenate((y_train, y_test, y_valid), axis = 0)
+        kFold = StratifiedKFold(n_splits = n_splits)
         scores = []
         for train, test in kFold.split(X, y):
-            _ = model.fit(X[train], y[train], batch_size = BS, epochs = epochs, validation_data=(X[test], y[test]))
+            _ = model.fit(X[train], y[train], batch_size = batch_size, epochs = epochs, validation_data=(X[test], y[test]))
             k_fold_pred = model.evaluate(X[test], y[test], verbose = 1, return_dict = True)
             print("k_fold_pred: ", k_fold_pred['accuracy'])
             scores.append(k_fold_pred['accuracy'])
@@ -401,14 +374,14 @@ def croppedOnlySpeedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_TRAIN, OUTP
     return prediction_df, evaluate_info_df
 
 
-def runCroppedOnlySpeedSigns(oversample = False, apply_transform = False, export_input_dataframes = False, k_fold = False, grayscale = False):
+def runCroppedOnlySpeedSigns(oversample = False, apply_transform = False, k_fold = False, grayscale = False, export_input_dataframes = False):
     """
         Within Class (prohibitory) Prediction CNN Model using Cropped images
         Speed Signs Only
     """
     tmr = Timer() # Set timer
 
-    train_df, test_df = getLabeledData(root_dir = ROOT_DIR, data_dir = DATA_DIR)
+    train_df, test_df = getLabeledData(root_dir = ROOT_DIR, data_dir = DATA_DIR, test_size = VAL_SPLIT)
 
     filtered_train_df = train_df[train_df['Class Number'] == 0]
     filtered_test_df = test_df[test_df['Class Number'] == 0]
@@ -468,7 +441,7 @@ def runCroppedOnlySpeedSigns(oversample = False, apply_transform = False, export
     print("\nRun CNN model (using Cropped images, Labeled Signs, Prohibitory Signs only)...\n")
     # Use transformations if apply_transform = True
     if apply_transform:
-        prediction_df, evaluate_info_df = croppedOnlySpeedTransformedCNNModel(filtered_train_df, filtered_test_df, filtered_val_df, OUTPUT_DIR_TRAIN_CROPPED_SPEED_ONLY, OUTPUT_DIR_TEST_CROPPED_SPEED_ONLY, OUTPUT_DIR_VALID_CROPPED_SPEED_ONLY, debug = True)
+        prediction_df, evaluate_info_df = croppedOnlySpeedTransformedCNNModel(filtered_train_df, filtered_test_df, filtered_val_df, OUTPUT_DIR_TRAIN_CROPPED_SPEED_ONLY, OUTPUT_DIR_TEST_CROPPED_SPEED_ONLY, OUTPUT_DIR_VALID_CROPPED_SPEED_ONLY, k_fold, grayscale, debug = True)
     else:
         prediction_df, evaluate_info_df = croppedOnlySpeedCNNModel(filtered_train_df, filtered_test_df, filtered_val_df, OUTPUT_DIR_TRAIN_CROPPED_SPEED_ONLY, OUTPUT_DIR_TEST_CROPPED_SPEED_ONLY, OUTPUT_DIR_VALID_CROPPED_SPEED_ONLY, k_fold, grayscale, debug = True)
     

@@ -13,7 +13,7 @@ from openpyxl import Workbook
 from datetime import datetime
 import shutil
 from sklearn.model_selection import train_test_split
-from utils.transforms.transform import getTwoDHaar, getDCT2, getDCT2Color, getDFT
+from utils.transforms.transform import getTwoDHaar, getDCT2, getDFT
 
 
 def showDataSamples(directory_path):
@@ -63,6 +63,22 @@ def getLabelsFromTxtFiles(labels, directory_path, files):
                     index += 1
     return pd.DataFrame(data, columns=['Class Number', 'Center in X', 'Center in Y', 
                                        'Width', 'Height', "Text Filename", "Image Filename", "Class Label"])
+
+
+def getFullData(labels, ROOT_DIR, DATA_DIR):
+    """
+        Get a train dataset using train.txt 
+        that contains paths to train images. 
+    """
+    train_files = []
+    with open(f"{ROOT_DIR}/data/all.txt", 'r') as file:
+        lines = file.readlines()
+        for line in lines:
+            fields = line.strip().split()
+            if len(fields) == 1:
+                train_files.append(f"{os.path.splitext(os.path.basename(fields[0]))[0]}.txt")
+    tDS = getLabelsFromTxtFiles(labels, DATA_DIR, train_files)
+    return tDS
 
 
 def getTrainData(labels, ROOT_DIR, DATA_DIR):
@@ -127,11 +143,6 @@ def cropImagesAndStoreRoadSigns(df, image_dir, output_dir, grayscale = False):
         # Crop the image
         cropped_img = img[y_min:y_max, x_min:x_max]
 
-        # Define the output file path and save the cropped image
-        # class_dir = os.path.join(output_dir, f"{row['Class Number']}")
-        # os.makedirs(class_dir, exist_ok=True)
-        # output_filename = os.path.join(class_dir, f"{row['Image Filename']}")
-        
         output_filename = os.path.join(output_dir, f"{row['Image Filename']}")
         cv.imwrite(output_filename, cropped_img)
 
@@ -206,7 +217,7 @@ class Timer():
         return msg
 
 
-def getLabeledData(root_dir, data_dir):
+def getLabeledData(root_dir, data_dir, test_size = 0.2):
     """ Get train & test sets containing Labeled, Within-Class data """
     print("Get Class Labels...\n")
     labels = pd.read_csv(f"{root_dir}/data/classes.names", header = None, names = ["Class labels"])
@@ -248,29 +259,19 @@ def getLabeledData(root_dir, data_dir):
     # Drop the duplicate 'ClassId' column
     all_data = all_data.drop(columns = ['ClassId'])
     print(all_data)
-
-    # NOTE: Skip cropping. We already have cropped files. 
-
-    print("Get train & test...\n")
-    train_df = getTrainData(labels, root_dir, data_dir)
-    test_df = getTestData(labels, root_dir, data_dir)
-
-    # TODO: Testing purposes: Merge and split again 
-    # TODO: rework 
-    all_df = pd.concat(([train_df, test_df]))
-    all_df_appended = all_df.merge(all_data, left_on = 'Image Filename', right_on = 'ImgNo', how = 'left')
+    
+    print("Get Full Dataset...\n")
+    full_df = getFullData(labels, root_dir, data_dir)
+    full_df_appended = full_df.merge(all_data, left_on = 'Image Filename', right_on = 'ImgNo', how = 'left')
     # Drop the duplicate 'ImgNo', 'Class labels' column
-    all_df_appended = all_df_appended.drop(columns = ['ImgNo', 'Class labels', 'ClassLabels'])
+    full_df_appended = full_df_appended.drop(columns = ['ImgNo', 'Class labels', 'ClassLabels'])
 
-    y_train = all_df_appended['ClassID']
-    x_train = all_df_appended.drop('ClassID', axis=1)
-    x_train, x_test, y_train, y_test = train_test_split(x_train, y_train, test_size=0.2, stratify=y_train, random_state = 42)
+    y_train = full_df_appended['ClassID']
+    x_train = full_df_appended.drop('ClassID', axis=1)
+    x_train, x_test, y_train, y_test = train_test_split(x_train, y_train, test_size = test_size, stratify = y_train, random_state = 42)
 
     train_df = pd.concat([x_train, pd.DataFrame(y_train, columns=['ClassID'])], axis=1)
     test_df = pd.concat([x_test, pd.DataFrame(y_test, columns=['ClassID'])], axis=1)
-    
-    print(test_df)
-    print("test_df Here!!!")
     return train_df, test_df
 
 
@@ -318,7 +319,7 @@ def saveMisclassifiedImages(prediction_df, actual_col, predicted_col, filename_c
         cv.imwrite(os.path.join(output_img_filepath, filename), img)
 
 
-def add_transformed_columns_wrapper(image_dir, type, image_dim, grayscale = False, absolute = False):
+def add_transformed_columns_wrapper(image_dir, type, image_dim, grayscale = False):
     def add_transformed_columns(row):
         """
             Get new columns (for a single row) in a transform set.
@@ -329,10 +330,7 @@ def add_transformed_columns_wrapper(image_dir, type, image_dim, grayscale = Fals
         if type == "2dhaar":
             transformed_data = getTwoDHaar(image_filename, image_dim)
         elif type == "dct2":
-            if grayscale:
-                transformed_data = getDCT2(image_filename, image_dim)
-            else:
-                transformed_data = getDCT2Color(image_filename, image_dim, absolute)
+            transformed_data = getDCT2(image_filename, image_dim, grayscale)
         elif type == "dft":
             transformed_data = getDFT(image_filename, image_dim)
         # TODO: ... continue elif: 'all', 'DaubechiesWavelet'
@@ -344,14 +342,14 @@ def add_transformed_columns_wrapper(image_dir, type, image_dim, grayscale = Fals
     return add_transformed_columns
 
 
-def getTransformSet(img_col_df, image_dir, type, image_dim, grayscale = False, absolute = False):
+def getTransformSet(img_col_df, image_dir, type, image_dim, grayscale = False):
     """
         Get a dataframe where one column is 'Image Filename', 
         and other column consists of N x N matrices, where N is the dimensions of a cropped image.
         We get N x N matrices after applying a transformations (e.g., Discrete Cosine Transform, 2D Haar Wavelet Transform) on images.
     """
     print(f"\nGetting Transform set for {image_dir}...\n")
-    img_col_df = img_col_df.apply(add_transformed_columns_wrapper(image_dir, type, image_dim, grayscale, absolute), axis=1)
+    img_col_df = img_col_df.apply(add_transformed_columns_wrapper(image_dir, type, image_dim, grayscale), axis=1)
     return img_col_df
 
 
@@ -377,27 +375,16 @@ def getImagesAsPixelDataFrame(df, image_size, OUTPUT_DIR, grayscale = False):
         img = cv.imread(file_path)  # Load the original image
         img = cv.cvtColor(img, cv.COLOR_BGR2RGB)  # Convert from BGR to RGB
         img = cv.resize(img, (image_size, image_size), interpolation = cv.INTER_AREA)
-
         if grayscale: 
             img = cv.cvtColor(img, cv.COLOR_BGR2GRAY) # Convert to grayscale
-            img_data = list(img.astype(float).flatten())
-            img_data.insert(0, jpg_file)
+            pixels = img.astype(float)
         else:
             # Split the resized image into its color channels
             red_channel, green_channel, blue_channel = cv.split(img)
-            red = red_channel.astype(float).flatten()
-            green = green_channel.astype(float).flatten()
-            blue = blue_channel.astype(float).flatten()
-            img_data = list(np.concatenate((red, green, blue)))
-            img_data.insert(0, jpg_file)
-
+            pixels = np.stack((red_channel.astype(float), green_channel.astype(float), blue_channel.astype(float)), axis = -1)
+        img_data = []
+        img_data.insert(0, jpg_file)
+        img_data.insert(1, pixels)
         image_data.append(img_data)
-    
-    if grayscale:
-        columns = ['Filename'] + [f"Pixel_{i + 1}" for i in range(image_size * image_size)]
-    else:
-        red_cols = [f"red_Pixel_{i + 1}" for i in range(image_size * image_size)] 
-        green_cols = [f"green_Pixel_{i + 1}" for i in range(image_size * image_size)]
-        blue_cols = [f"blue_Pixel_{i + 1}" for i in range(image_size * image_size)]
-        columns = ['Filename'] + red_cols + green_cols + blue_cols
+    columns = ['Image Filename', 'Pixels']
     return pd.DataFrame(image_data, columns = columns)
