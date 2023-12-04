@@ -184,6 +184,9 @@ def croppedOnlySpeedTransformedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_
     train_class_counts_dict = {class_name: count for class_name, count in train_dataset['ClassID'].value_counts().items()}
     test_class_counts_dict = {class_name: count for class_name, count in test_dataset['ClassID'].value_counts().items()}
     valid_class_counts_dict = {class_name: count for class_name, count in valid_dataset['ClassID'].value_counts().items()}
+    model_info_dict = {'method': 'croppedOnlySpeedTransformedCNNModel', 'image_size': f"{image_size}x{image_size}", 
+                       'channels': channels, 'epochs': epochs, 
+                       'batch_size': batch_size, 'transform_type': transform_type}
     evaluate_info_df = pd.DataFrame({'Evaluation Accuracy (on Valid)': [f"{round(pred_on_val['accuracy'] * 100, 4)}%"], 
                                      'Evaluation Accuracy (on Train)': [f"{round(pred_on_train['accuracy'] * 100, 4)}%"], 
                                      'Classif. Accuracy (on Test)': [f"{round(pred_accuracy_class_id * 100, 4)}%"], 
@@ -193,8 +196,12 @@ def croppedOnlySpeedTransformedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_
                                      'Total signs (in Test set)': str(prediction_df.shape[0]), 
                                      'Class Counts (Test set)': str(test_class_counts_dict),
                                      'Total signs (in Valid set)': str(valid_dataset.shape[0]),
-                                     'Class Counts (Valid set)': str(valid_class_counts_dict),})
-    
+                                     'Class Counts (Valid set)': str(valid_class_counts_dict),
+                                     'Model info': str(model_info_dict)})
+
+    print("\nevaluate_info_df: ")
+    print(evaluate_info_df)
+
     if k_fold:
         print("\n Run K-fold")
         X, y = np.concatenate((x_train, x_test, x_valid), axis = 0), np.concatenate((y_train, y_test, y_valid), axis = 0)
@@ -344,6 +351,9 @@ def croppedOnlySpeedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_TRAIN, OUTP
     train_class_counts_dict = {class_name: count for class_name, count in train_dataset['ClassID'].value_counts().items()}
     test_class_counts_dict = {class_name: count for class_name, count in test_dataset['ClassID'].value_counts().items()}
     valid_class_counts_dict = {class_name: count for class_name, count in valid_dataset['ClassID'].value_counts().items()}
+    model_info_dict = {'method': 'croppedOnlySpeedCNNModel', 'image_size': f"{image_size}x{image_size}", 
+                       'channels': channels, 'epochs': epochs, 
+                       'batch_size': batch_size, 'transform_type': None}
     evaluate_info_df = pd.DataFrame({'Evaluation Accuracy (on Valid)': [f"{round(pred_on_val['accuracy'] * 100, 4)}%"], 
                                      'Evaluation Accuracy (on Train)': [f"{round(pred_on_train['accuracy'] * 100, 4)}%"], 
                                      'Classif. Accuracy (on Test)': [f"{round(pred_accuracy_class_id * 100, 4)}%"], 
@@ -353,8 +363,12 @@ def croppedOnlySpeedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_TRAIN, OUTP
                                      'Total signs (in Test set)': str(prediction_df.shape[0]), 
                                      'Class Counts (Test set)': str(test_class_counts_dict),
                                      'Total signs (in Valid set)': str(valid_dataset.shape[0]),
-                                     'Class Counts (Valid set)': str(valid_class_counts_dict),})
+                                     'Class Counts (Valid set)': str(valid_class_counts_dict),
+                                     'Model info': str(model_info_dict)})
     
+    print("\nevaluate_info_df: ")
+    print(evaluate_info_df)
+
     if k_fold:
         print("\n Run K-fold")
         X, y = np.concatenate((x_train, x_test, x_valid), axis = 0), np.concatenate((y_train, y_test, y_valid), axis = 0)
@@ -374,7 +388,7 @@ def croppedOnlySpeedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_TRAIN, OUTP
     return prediction_df, evaluate_info_df
 
 
-def runCroppedOnlySpeedSigns(oversample = False, apply_transform = False, k_fold = False, grayscale = False, export_input_dataframes = False):
+def runCroppedOnlySpeedSigns(oversample = False, apply_transform = False, k_fold = False, grayscale = False, save_output = True, export_input_dataframes = False):
     """
         Within Class (prohibitory) Prediction CNN Model using Cropped images
         Speed Signs Only
@@ -446,11 +460,12 @@ def runCroppedOnlySpeedSigns(oversample = False, apply_transform = False, k_fold
         prediction_df, evaluate_info_df = croppedOnlySpeedCNNModel(filtered_train_df, filtered_test_df, filtered_val_df, OUTPUT_DIR_TRAIN_CROPPED_SPEED_ONLY, OUTPUT_DIR_TEST_CROPPED_SPEED_ONLY, OUTPUT_DIR_VALID_CROPPED_SPEED_ONLY, k_fold, grayscale, debug = True)
     
     runtime = tmr.ShowTime() # End timer.
-    evaluate_info_df['runtime'] = str(runtime)
+    evaluate_info_df['Runtime'] = str(runtime)
 
     output_name = f"cropped_only_Speed{'_applied_transform' if apply_transform else ''}" # It can be part of a file name or folder name
-    writeToExcel(prediction_df, evaluate_info_df, SPEED_ONLY_PRESENT_EXCEL, OUTPUT_DIR_TEST = None, name = output_name)
-    saveMisclassifiedImages(prediction_df, actual_col = '(Actual) ClassID', predicted_col = '(Predicted) ClassID', filename_col = 'Image Filename', input_test_dir = OUTPUT_DIR_TEST_CROPPED_SPEED_ONLY, output_img_dir = SPEED_ONLY_PRESENT_IMG, name = output_name)
+    if save_output:
+        writeToExcel(prediction_df, evaluate_info_df, SPEED_ONLY_PRESENT_EXCEL, OUTPUT_DIR_TEST = None, name = output_name)
+        saveMisclassifiedImages(prediction_df, actual_col = '(Actual) ClassID', predicted_col = '(Predicted) ClassID', filename_col = 'Image Filename', input_test_dir = OUTPUT_DIR_TEST_CROPPED_SPEED_ONLY, output_img_dir = SPEED_ONLY_PRESENT_IMG, name = output_name)
     if export_input_dataframes: 
         exportTrainTestValidDataframes(filtered_train_df, filtered_test_df, filtered_val_df, SPEED_ONLY_PRESENT_EXCEL)
 
