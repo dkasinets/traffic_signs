@@ -468,6 +468,7 @@ def runCroppedOnlySpeedSigns(oversample = False, apply_transform = False, k_fold
         saveMisclassifiedImages(prediction_df, actual_col = '(Actual) ClassID', predicted_col = '(Predicted) ClassID', filename_col = 'Image Filename', input_test_dir = OUTPUT_DIR_TEST_CROPPED_SPEED_ONLY, output_img_dir = SPEED_ONLY_PRESENT_IMG, name = output_name)
     if export_input_dataframes: 
         exportTrainTestValidDataframes(filtered_train_df, filtered_test_df, filtered_val_df, SPEED_ONLY_PRESENT_EXCEL)
+    return evaluate_info_df
 
 
 def main(debug):

@@ -3,10 +3,46 @@ from utils.shared_func import showDataSamples
 from models.cnn1_cropped_only.run_cropped_only import runCroppedOnly
 from models.cnn2_prohib_only.run_prohibitory_only import runCroppedOnlyProhibitory
 from models.cnn3_speed_only.run_speed_only import runCroppedOnlySpeedSigns
+from itertools import product
+import pandas as pd
+from datetime import datetime
 
 # Global Variables
 ROOT_DIR = "/Users/Kasinets/Dropbox/Mac/Desktop/SP22_JHU/Rodriguez/TRAFFIC_SIGNS/traffic_signs"
 DATA_DIR = f"{ROOT_DIR}/data/ts/ts/"
+# Speed Sings Only (CNN #3)
+SPEED_ONLY_PRESENT_EXCEL = f'{ROOT_DIR}/output/excel/speed_only/'
+
+
+def run_combinations():
+    """
+        Run Model (with different configurations)
+    """
+    oversample_options, apply_transform_options, grayscale_options = [True, False], [True, False], [True, False]
+    all_combinations = product(oversample_options, apply_transform_options, grayscale_options)
+    
+    runs_df = pd.DataFrame()
+    print("\nIterate over all combinations for runCroppedOnlySpeedSigns()...")
+    for oversample, apply_transform, grayscale in all_combinations:
+        print(f"oversample: {oversample},", f"apply_transform: {apply_transform},", f"grayscale: {grayscale}")
+        evaluate_info_df = runCroppedOnlySpeedSigns(
+            oversample = oversample,
+            apply_transform = apply_transform,
+            k_fold = False,
+            grayscale = grayscale,
+            save_output = False,
+            export_input_dataframes = False
+        )
+        runs_df = pd.concat([runs_df, evaluate_info_df], axis = 0, ignore_index = True)
+    
+    print("runs_df: ")
+    print(runs_df)
+    
+    # Export as .csv
+    now = datetime.now()
+    formatted_date = now.strftime("%m-%d-%Y-%I-%M-%S-%p")
+    speed_signs_runs_filename = f"{'run_all_speed_signs_combinations'}_{formatted_date}.csv"
+    runs_df.to_csv(f"{SPEED_ONLY_PRESENT_EXCEL}/{speed_signs_runs_filename}", index = False)
 
 
 def main(debug):
@@ -35,7 +71,8 @@ def main(debug):
     # CNN #3
     # Number of classes: 8 
     # NOTE: Here, we predict speed signs only.
-    runCroppedOnlySpeedSigns(oversample = False, apply_transform = True, k_fold = False, grayscale = False, save_output = False, export_input_dataframes = False)
+    # runCroppedOnlySpeedSigns(oversample = False, apply_transform = True, k_fold = False, grayscale = False, save_output = False, export_input_dataframes = False)
+    run_combinations()
 
     tmr.ShowTime() # End timer.
 
