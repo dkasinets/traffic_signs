@@ -59,17 +59,21 @@ def TwoDHaarTransform(Im, L):
     return waveletIm
 
 
-def getTwoDHaar(filepath, image_dim = 40):
+def getTwoDHaar(filepath, image_dim = 40, L = 4, grayscale = False, absolute = False):
     """
         Given an image (i.e., either RGB or grayscale), 
-        return a 2D matrix (2D Haar Wavelet Transform of grayscale image). 
+        Resize and return a matrix (2D Haar Wavelet Transform of an image).
+
+        - Future: Apply the 2D Haar Wavelet Transform followed by the Discrete Cosine Transform (DCT)
+        - Why?: Can return improved characteristics compared to using the 2D Haar Transform directly.
 
         Inputs:
             filepath is the input filepath
             image_dim is an integer dimension of a square image (i.e., at the input filepath)
         
         Output:
-            2D matrix (2D Haar Wavelet Transform of grayscale image)
+            2D Haar Wavelet Transform (Haar) of an image (i.e., (image_dim x image_dim x 1) shape), 
+            or Haar of an image containing each color channel (i.e., (image_dim x image_dim x 3) shape)
     """
     Im = cv.imread(filepath) # Load (and display) the original image
     Im = cv.cvtColor(Im, cv.COLOR_BGR2RGB) # opencv uses bgr color mode and matplotlib uses rgb color mode
@@ -79,10 +83,23 @@ def getTwoDHaar(filepath, image_dim = 40):
     # It may be a preferred method for image decimation, as it gives moire'-free results.
     # But when the image is zoomed, it is similar to the cv.INTER_NEAREST method.
     Im_resized = cv.resize(Im, (image_dim, image_dim), interpolation = cv.INTER_AREA) # INTER_LINEAR - bilinear interpolation
-    Im = cv.cvtColor(Im_resized, cv.COLOR_BGR2GRAY) # Convert to grayscale
-    L = 4 # Define the number of levels L
-    waveletIm = TwoDHaarTransform(Im.astype(float), L) # Perform the 2D Haar Wavelet Transform
-    return np.abs(waveletIm)
+    L = 3 # Define the number of levels Ex: L = 4 
+    if grayscale:
+        Im = cv.cvtColor(Im_resized, cv.COLOR_BGR2GRAY) # Convert to grayscale
+        # Perform the 2D Haar Wavelet Transform
+        waveletIm = TwoDHaarTransform(Im.astype(float), L)
+        return np.abs(waveletIm) if absolute else waveletIm
+    else:
+        # Split the resized image into its color channels
+        red_channel, green_channel, blue_channel = cv.split(Im_resized)
+        # Perform the 2D Haar Wavele Transform for each color channel
+        red_Haar = TwoDHaarTransform(red_channel.astype(float), L)
+        green_Haar = TwoDHaarTransform(green_channel.astype(float), L)
+        blue_Haar = TwoDHaarTransform(blue_channel.astype(float), L)
+        # Apply absolute value
+        if absolute:
+            red_Haar, green_Haar, blue_Haar = np.abs(red_Haar), np.abs(green_Haar), np.abs(blue_Haar)
+        return np.stack((red_Haar, green_Haar, blue_Haar), axis = -1)
 
 
 def plotTwoDHaar(filepath, image_dim = 40):
@@ -186,9 +203,7 @@ def getDCT2(filepath, image_dim = 40, grayscale = False, absolute = False):
         # Before feeding to model, Remove top left [0, 0] DC coefficient (average of energy). 
         res_DCT[0, 0] = 0
         # Apply absolute value 
-        if absolute:
-            res_DCT = np.abs(res_DCT)
-        return res_DCT
+        return np.abs(res_DCT) if absolute else res_DCT
     else:
         # Split the resized image into its color channels
         red_channel, green_channel, blue_channel = cv.split(Im_resized)
@@ -266,17 +281,26 @@ def DFT_DS(N):
     return DFT_Matrix
 
 
-def getDFT(filepath, image_dim = 40):
+def getDFT(filepath, image_dim = 40, grayscale = False, absolute = False):
     """
         Given an image (i.e., either RGB or grayscale), 
-        return a 2D matrix (Discrete Fourier Transform of grayscale image). 
+        Resize and return a matrix (Discrete Fourier Transform of an image). 
+        
+        NOTE:
+        - The low-frequency coefficients generally represent the overall structure or the global features of an image
+        - High-frequency coefficients represent fine details or local features
+
+        - Future: Select low-frequency coefficients and remove the center coefficient(s) by zeroing them
+        - Why?: Zeroing out coefficients near the center effectively removes high-frequency information, 
+        preserving the low-frequency components and the overall structure of the image.
 
         Inputs:
             filepath is the input filepath
             image_dim is an integer dimension of a square image (i.e., at the input filepath)
         
         Output:
-            2D matrix (Discrete Fourier Transform of grayscale image)
+            Discrete Fourier Transform (DFT) of an image (i.e., (image_dim x image_dim x 1) shape), 
+            or DFT of an image containing each color channel (i.e., (image_dim x image_dim x 3) shape)
     """
     Im = cv.imread(filepath) # Load (and display) the original image
     Im = cv.cvtColor(Im, cv.COLOR_BGR2RGB) # opencv uses bgr color mode and matplotlib uses rgb color mode
@@ -285,10 +309,24 @@ def getDFT(filepath, image_dim = 40):
     # cv.INTER_AREA - resampling using pixel area relation. It may be a preferred method for image decimation, as it gives moire'-free results.
     # But when the image is zoomed, it is similar to the cv.INTER_NEAREST method.
     Im_resized = cv.resize(Im, (image_dim, image_dim), interpolation = cv.INTER_AREA) # INTER_LINEAR - bilinear interpolation
-    Im = cv.cvtColor(Im_resized, cv.COLOR_BGR2GRAY) # Convert to grayscale
     DFT = DFT_DS(image_dim) # Generate DFT matrix of size image_dim
-    DFT_sX = np.dot(np.dot(DFT, Im.astype(float)), np.conj(DFT).T) # Perform Discrete Fourier Transform on the image
-    return np.abs(DFT_sX)
+    if grayscale:
+        Im = cv.cvtColor(Im_resized, cv.COLOR_BGR2GRAY) # Convert to grayscale
+        # Perform Discrete Fourier Transform (DFT) on the image
+        DFT_sX = np.dot(np.dot(DFT, Im.astype(float)), np.conj(DFT).T)
+        # Apply absolute value 
+        return np.abs(DFT_sX) if absolute else DFT_sX
+    else:
+        # Split the resized image into its color channels
+        red_channel, green_channel, blue_channel = cv.split(Im_resized)
+        # Perform the DFT Transform for each color channel
+        red_DFT = np.dot(np.dot(DFT, red_channel.astype(float)), np.conj(DFT).T) 
+        green_DFT = np.dot(np.dot(DFT, green_channel.astype(float)), np.conj(DFT).T) 
+        blue_DFT = np.dot(np.dot(DFT, blue_channel.astype(float)), np.conj(DFT).T) 
+        # Apply absolute value
+        if absolute:
+            red_DFT, green_DFT, blue_DFT = np.abs(red_DFT), np.abs(green_DFT), np.abs(blue_DFT)
+        return np.stack((red_DFT, green_DFT, blue_DFT), axis = -1)
 
 
 def plotDFT(filepath, image_dim = 40):
@@ -464,7 +502,7 @@ def plotDaubechiesWavelet(filepath, image_dim = 40):
 # TODO: Done. Fix validation/train issues (by looking at Amir's code example)
 
 # TODO: Create a Flow of steps for each of the below experiments 
-# TODO: Epochs: 40 -> 60 = Put All available data in train (master = total - Try all data. Make function to take specific images from master to get Test. 
+# TODO: OK. Epochs: 40 -> 60 = Put All available data in train (master = total - Try all data. Make function to take specific images from master to get Test. 
 # TODO: Upcoming: 5-Fold... Train and Test only   
 
 # Try on Speed only set:  

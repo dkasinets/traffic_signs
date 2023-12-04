@@ -328,12 +328,12 @@ def add_transformed_columns_wrapper(image_dir, type, image_dim, grayscale = Fals
 
         # Pick a transformation
         if type == "2dhaar":
-            transformed_data = getTwoDHaar(image_filename, image_dim)
+            transformed_data = getTwoDHaar(image_filename, image_dim = image_dim, L = 3, grayscale = grayscale)
         elif type == "dct2":
             transformed_data = getDCT2(image_filename, image_dim, grayscale)
         elif type == "dft":
-            transformed_data = getDFT(image_filename, image_dim)
-        # TODO: ... continue elif: 'all', 'DaubechiesWavelet'
+            transformed_data = getDFT(image_filename, image_dim, grayscale)
+        # ... continue elif: 'DaubechiesWavelet'
         else:
             return row
 
