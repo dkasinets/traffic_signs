@@ -66,13 +66,14 @@ def main(debug):
     # CNN #2
     # Number of classes: 5 
     # NOTE: Speed signs (with different speed limits) are aggregated as one class of speed sign (i.e., ClassID = 999).
-    # runCroppedOnlyProhibitory(oversample = False) # True is better (gives higher accuracy)
+    # oversample = True is better (gives higher accuracy)
+    runCroppedOnlyProhibitory(oversample = False, apply_transform = False, k_fold = True, grayscale = False, save_output = False, export_input_dataframes = False)
 
     # CNN #3
     # Number of classes: 8 
     # NOTE: Here, we predict speed signs only.
-    # runCroppedOnlySpeedSigns(oversample = False, apply_transform = True, k_fold = False, grayscale = False, save_output = False, export_input_dataframes = False)
-    run_combinations()
+    # runCroppedOnlySpeedSigns(oversample = False, apply_transform = False, k_fold = True, grayscale = False, save_output = False, export_input_dataframes = False)
+    # run_combinations()
 
     tmr.ShowTime() # End timer.
 

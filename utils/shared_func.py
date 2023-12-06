@@ -13,6 +13,7 @@ from openpyxl import Workbook
 from datetime import datetime
 import shutil
 from sklearn.model_selection import train_test_split
+from sklearn.model_selection import StratifiedKFold
 from utils.transforms.transform import getTwoDHaar, getDCT2, getDFT
 
 
@@ -266,6 +267,7 @@ def getLabeledData(root_dir, data_dir, test_size = 0.2):
     # Drop the duplicate 'ImgNo', 'Class labels' column
     full_df_appended = full_df_appended.drop(columns = ['ImgNo', 'Class labels', 'ClassLabels'])
 
+    print("Split into Train/Test...\n")
     y_train = full_df_appended['ClassID']
     x_train = full_df_appended.drop('ClassID', axis=1)
     x_train, x_test, y_train, y_test = train_test_split(x_train, y_train, test_size = test_size, stratify = y_train, random_state = 42)
@@ -388,3 +390,78 @@ def getImagesAsPixelDataFrame(df, image_size, OUTPUT_DIR, grayscale = False):
         image_data.append(img_data)
     columns = ['Image Filename', 'Pixels']
     return pd.DataFrame(image_data, columns = columns)
+
+
+def evaluateModel(predicted_class, train_dataset, test_dataset, valid_dataset, pred_on_val, pred_on_train, model_info_dict):
+    """ 
+    Get Model's performance information 
+    """
+    print("\nGet Model's performance information...")
+    # Create an Output Excel DataFrame
+    prediction_df = pd.DataFrame({
+        "(Predicted) ClassID" : predicted_class,
+        "(Actual) ClassID" : test_dataset['ClassID'],
+        "(Actual) ClassIdDesc" : test_dataset["ClassIdDesc"],
+        "(Actual) Class Number" : test_dataset["Class Number"],
+        "(Actual) Class Label" : test_dataset["Class Label"],
+        "(Actual) MetaPath": test_dataset["MetaPath"],
+        "(Actual) ShapeId": test_dataset["ShapeId"],
+        "(Actual) ColorId": test_dataset["ColorId"],
+        "(Actual) SignId": test_dataset["SignId"],
+        "Image Filename": test_dataset["Image Filename"],
+        "Image Height": test_dataset["Image Height"],
+        "Image Width": test_dataset["Image Width"],
+    })
+
+    print("Evaluate\n") 
+    pred_accuracy_class_id = accuracy_score(prediction_df["(Predicted) ClassID"], prediction_df["(Actual) ClassID"])
+    print(f"ClassID Accuracy (on Valid): {round(pred_on_val['accuracy'] * 100, 4)}%")
+    print(f"ClassID Accuracy (on Train): {round(pred_on_train['accuracy'] * 100, 4)}%")
+    print(f"ClassID Accuracy (on Test): {round(pred_accuracy_class_id * 100, 4)}%")
+
+    print("\npredictions: ")
+    print(prediction_df)
+
+    # More info to save to Excel (as a DataFrame)
+    train_class_counts_dict = {class_name: count for class_name, count in train_dataset['ClassID'].value_counts().items()}
+    test_class_counts_dict = {class_name: count for class_name, count in test_dataset['ClassID'].value_counts().items()}
+    valid_class_counts_dict = {class_name: count for class_name, count in valid_dataset['ClassID'].value_counts().items()}
+    evaluate_info_df = pd.DataFrame({'Evaluation Accuracy (on Valid)': [f"{round(pred_on_val['accuracy'] * 100, 4)}%"], 
+                                     'Evaluation Accuracy (on Train)': [f"{round(pred_on_train['accuracy'] * 100, 4)}%"], 
+                                     'Classif. Accuracy (on Test)': [f"{round(pred_accuracy_class_id * 100, 4)}%"], 
+                                     'Incorrectly classified signs (on Test)': str(prediction_df.shape[0] - int(pred_accuracy_class_id * prediction_df.shape[0])), 
+                                     'Total signs (in Train set)': str(train_dataset.shape[0]), 
+                                     'Class Counts (Train set)': str(train_class_counts_dict),
+                                     'Total signs (in Test set)': str(prediction_df.shape[0]), 
+                                     'Class Counts (Test set)': str(test_class_counts_dict),
+                                     'Total signs (in Valid set)': str(valid_dataset.shape[0]),
+                                     'Class Counts (Valid set)': str(valid_class_counts_dict),
+                                     'Model info': str(model_info_dict)})
+
+    print("\nevaluate_info_df: ")
+    print(evaluate_info_df)
+    
+    return prediction_df, evaluate_info_df
+
+
+def evaluateWithKFold(model, model_params, evaluate_info_df, x_train, y_train, x_test, y_test, x_valid, y_valid):
+    """
+    Perform K-Fold Cross Validation 
+    """
+    print("\nRun K-fold...")
+    n_splits, batch_size, epochs = model_params
+    X, y = np.concatenate((x_train, x_test, x_valid), axis = 0), np.concatenate((y_train, y_test, y_valid), axis = 0)
+    kFold = StratifiedKFold(n_splits = n_splits)
+    scores = []
+    for train, test in kFold.split(X, y):
+        _ = model.fit(X[train], y[train], batch_size = batch_size, epochs = epochs, validation_data=(X[test], y[test]))
+        k_fold_pred = model.evaluate(X[test], y[test], verbose = 1, return_dict = True)
+        print("k_fold_pred: ", k_fold_pred['accuracy'])
+        scores.append(k_fold_pred['accuracy'])
+    
+    scores_formatted = [f"{round(s * 100, 4)}%" for s in scores]
+    mean_score_formatted = f"{round(np.mean(scores) * 100, 4)}%"
+    evaluate_info_df["Stratified 5-Fold"] = str(f"5-Fold: {scores_formatted}, Mean: {mean_score_formatted}")
+    print(f"5-Fold accuracies: {scores_formatted}, Mean: {mean_score_formatted}")
+
+    return evaluate_info_df

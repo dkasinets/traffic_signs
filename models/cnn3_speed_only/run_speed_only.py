@@ -46,7 +46,7 @@ sys.path.append(f'{ROOT_DIR}/utils/')
 from utils.shared_func import showDataSamples, cropImagesAndStoreRoadSigns, getImageAndSignDimensions, writeToExcel, Timer
 from utils.shared_func import getLabeledData, resolve_duplicate_filenames, saveMisclassifiedImages
 from utils.shared_func import getTransformSet, exportTrainTestValidDataframes
-from utils.shared_func import getImagesAsPixelDataFrame
+from utils.shared_func import getImagesAsPixelDataFrame, evaluateModel, evaluateWithKFold
 
 
 def croppedOnlySpeedTransformedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_TRAIN, OUTPUT_DIR_TEST, OUTPUT_DIR_VALID, k_fold = False, grayscale = False, debug = False):
@@ -155,68 +155,17 @@ def croppedOnlySpeedTransformedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_
     test_dataset['ClassID'] = encoder_test.inverse_transform(test_dataset['ClassID'])
     valid_dataset['ClassID'] = encoder_valid.inverse_transform(valid_dataset['ClassID'])
 
-    # Create an Output Excel DataFrame
-    prediction_df = pd.DataFrame({
-        "(Predicted) ClassID" : predicted_class_id,
-        "(Actual) ClassID" : test_dataset['ClassID'],
-        "(Actual) ClassIdDesc" : test_dataset["ClassIdDesc"],
-        "(Actual) Class Number" : test_dataset["Class Number"],
-        "(Actual) Class Label" : test_dataset["Class Label"],
-        "(Actual) MetaPath": test_dataset["MetaPath"],
-        "(Actual) ShapeId": test_dataset["ShapeId"],
-        "(Actual) ColorId": test_dataset["ColorId"],
-        "(Actual) SignId": test_dataset["SignId"],
-        "Image Filename": test_dataset["Image Filename"],
-        "Image Height": test_dataset["Image Height"],
-        "Image Width": test_dataset["Image Width"],
-    })
-
-    print("Evaluate\n") 
-    pred_accuracy_class_id = accuracy_score(prediction_df["(Predicted) ClassID"], prediction_df["(Actual) ClassID"])
-    print(f"ClassID Accuracy (on Valid): {round(pred_on_val['accuracy'] * 100, 4)}%")
-    print(f"ClassID Accuracy (on Train): {round(pred_on_train['accuracy'] * 100, 4)}%")
-    print(f"ClassID Accuracy (on Test): {round(pred_accuracy_class_id * 100, 4)}%")
-
-    print("\npredictions: ")
-    print(prediction_df)
-    
-    # More info to save to Excel (as a DataFrame)
-    train_class_counts_dict = {class_name: count for class_name, count in train_dataset['ClassID'].value_counts().items()}
-    test_class_counts_dict = {class_name: count for class_name, count in test_dataset['ClassID'].value_counts().items()}
-    valid_class_counts_dict = {class_name: count for class_name, count in valid_dataset['ClassID'].value_counts().items()}
     model_info_dict = {'method': 'croppedOnlySpeedTransformedCNNModel', 'image_size': f"{image_size}x{image_size}", 
                        'channels': channels, 'epochs': epochs, 
                        'batch_size': batch_size, 'transform_type': transform_type}
-    evaluate_info_df = pd.DataFrame({'Evaluation Accuracy (on Valid)': [f"{round(pred_on_val['accuracy'] * 100, 4)}%"], 
-                                     'Evaluation Accuracy (on Train)': [f"{round(pred_on_train['accuracy'] * 100, 4)}%"], 
-                                     'Classif. Accuracy (on Test)': [f"{round(pred_accuracy_class_id * 100, 4)}%"], 
-                                     'Incorrectly classified signs (on Test)': str(prediction_df.shape[0] - int(pred_accuracy_class_id * prediction_df.shape[0])), 
-                                     'Total signs (in Train set)': str(train_dataset.shape[0]), 
-                                     'Class Counts (Train set)': str(train_class_counts_dict),
-                                     'Total signs (in Test set)': str(prediction_df.shape[0]), 
-                                     'Class Counts (Test set)': str(test_class_counts_dict),
-                                     'Total signs (in Valid set)': str(valid_dataset.shape[0]),
-                                     'Class Counts (Valid set)': str(valid_class_counts_dict),
-                                     'Model info': str(model_info_dict)})
 
-    print("\nevaluate_info_df: ")
-    print(evaluate_info_df)
-
+    # Here - call evaluateModel function 
+    prediction_df, evaluate_info_df = evaluateModel(predicted_class_id, train_dataset, test_dataset, valid_dataset, 
+                                                    pred_on_val, pred_on_train, model_info_dict)
+    
     if k_fold:
-        print("\n Run K-fold")
-        X, y = np.concatenate((x_train, x_test, x_valid), axis = 0), np.concatenate((y_train, y_test, y_valid), axis = 0)
-        kFold = StratifiedKFold(n_splits = n_splits)
-        scores = []
-        for train, test in kFold.split(X, y):
-            _ = model.fit(X[train], y[train], batch_size = batch_size, epochs = epochs, validation_data=(X[test], y[test]))
-            k_fold_pred = model.evaluate(X[test], y[test], verbose = 1, return_dict = True)
-            print("k_fold_pred: ", k_fold_pred['accuracy'])
-            scores.append(k_fold_pred['accuracy'])
-        
-        scores_formatted = [f"{round(s * 100, 4)}%" for s in scores]
-        mean_score_formatted = f"{round(np.mean(scores) * 100, 4)}%"
-        evaluate_info_df["Stratified 5-Fold"] = str(f"5-Fold: {scores_formatted}, Mean: {mean_score_formatted}")
-        print(f"5-Fold: {scores_formatted}, Mean: {mean_score_formatted}")
+        model_params = [n_splits, batch_size, epochs]
+        evaluate_info_df = evaluateWithKFold(model, model_params, evaluate_info_df, x_train, y_train, x_test, y_test, x_valid, y_valid)
     
     return prediction_df, evaluate_info_df
 
@@ -322,68 +271,17 @@ def croppedOnlySpeedCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_TRAIN, OUTP
     test_dataset['ClassID'] = encoder_test.inverse_transform(test_dataset['ClassID'])
     valid_dataset['ClassID'] = encoder_valid.inverse_transform(valid_dataset['ClassID'])
 
-    # Create an Output Excel DataFrame
-    prediction_df = pd.DataFrame({
-        "(Predicted) ClassID" : predicted_class_id,
-        "(Actual) ClassID" : test_dataset['ClassID'],
-        "(Actual) ClassIdDesc" : test_dataset["ClassIdDesc"],
-        "(Actual) Class Number" : test_dataset["Class Number"],
-        "(Actual) Class Label" : test_dataset["Class Label"],
-        "(Actual) MetaPath": test_dataset["MetaPath"],
-        "(Actual) ShapeId": test_dataset["ShapeId"],
-        "(Actual) ColorId": test_dataset["ColorId"],
-        "(Actual) SignId": test_dataset["SignId"],
-        "Image Filename": test_dataset["Image Filename"],
-        "Image Height": test_dataset["Image Height"],
-        "Image Width": test_dataset["Image Width"],
-    })
-
-    print("Evaluate\n") 
-    pred_accuracy_class_id = accuracy_score(prediction_df["(Predicted) ClassID"], prediction_df["(Actual) ClassID"])
-    print(f"ClassID Accuracy (on Valid): {round(pred_on_val['accuracy'] * 100, 4)}%")
-    print(f"ClassID Accuracy (on Train): {round(pred_on_train['accuracy'] * 100, 4)}%")
-    print(f"ClassID Accuracy (on Test): {round(pred_accuracy_class_id * 100, 4)}%")
-    
-    print("\npredictions: ")
-    print(prediction_df)
-
-    # More info to save to Excel (as a DataFrame)
-    train_class_counts_dict = {class_name: count for class_name, count in train_dataset['ClassID'].value_counts().items()}
-    test_class_counts_dict = {class_name: count for class_name, count in test_dataset['ClassID'].value_counts().items()}
-    valid_class_counts_dict = {class_name: count for class_name, count in valid_dataset['ClassID'].value_counts().items()}
     model_info_dict = {'method': 'croppedOnlySpeedCNNModel', 'image_size': f"{image_size}x{image_size}", 
                        'channels': channels, 'epochs': epochs, 
                        'batch_size': batch_size, 'transform_type': None}
-    evaluate_info_df = pd.DataFrame({'Evaluation Accuracy (on Valid)': [f"{round(pred_on_val['accuracy'] * 100, 4)}%"], 
-                                     'Evaluation Accuracy (on Train)': [f"{round(pred_on_train['accuracy'] * 100, 4)}%"], 
-                                     'Classif. Accuracy (on Test)': [f"{round(pred_accuracy_class_id * 100, 4)}%"], 
-                                     'Incorrectly classified signs (on Test)': str(prediction_df.shape[0] - int(pred_accuracy_class_id * prediction_df.shape[0])), 
-                                     'Total signs (in Train set)': str(train_dataset.shape[0]), 
-                                     'Class Counts (Train set)': str(train_class_counts_dict),
-                                     'Total signs (in Test set)': str(prediction_df.shape[0]), 
-                                     'Class Counts (Test set)': str(test_class_counts_dict),
-                                     'Total signs (in Valid set)': str(valid_dataset.shape[0]),
-                                     'Class Counts (Valid set)': str(valid_class_counts_dict),
-                                     'Model info': str(model_info_dict)})
-    
-    print("\nevaluate_info_df: ")
-    print(evaluate_info_df)
+
+    # Here - call evaluateModel function 
+    prediction_df, evaluate_info_df = evaluateModel(predicted_class_id, train_dataset, test_dataset, valid_dataset, 
+                                                    pred_on_val, pred_on_train, model_info_dict)
 
     if k_fold:
-        print("\n Run K-fold")
-        X, y = np.concatenate((x_train, x_test, x_valid), axis = 0), np.concatenate((y_train, y_test, y_valid), axis = 0)
-        kFold = StratifiedKFold(n_splits = n_splits)
-        scores = []
-        for train, test in kFold.split(X, y):
-            _ = model.fit(X[train], y[train], batch_size = batch_size, epochs = epochs, validation_data=(X[test], y[test]))
-            k_fold_pred = model.evaluate(X[test], y[test], verbose = 1, return_dict = True)
-            print("k_fold_pred: ", k_fold_pred['accuracy'])
-            scores.append(k_fold_pred['accuracy'])
-        
-        scores_formatted = [f"{round(s * 100, 4)}%" for s in scores]
-        mean_score_formatted = f"{round(np.mean(scores) * 100, 4)}%"
-        evaluate_info_df["Stratified 5-Fold"] = str(f"5-Fold: {scores_formatted}, Mean: {mean_score_formatted}")
-        print(f"5-Fold: {scores_formatted}, Mean: {mean_score_formatted}")
+        model_params = [n_splits, batch_size, epochs]
+        evaluate_info_df = evaluateWithKFold(model, model_params, evaluate_info_df, x_train, y_train, x_test, y_test, x_valid, y_valid)
     
     return prediction_df, evaluate_info_df
 
@@ -452,7 +350,7 @@ def runCroppedOnlySpeedSigns(oversample = False, apply_transform = False, k_fold
     filtered_test_df[['Image Height', 'Image Width', 'Sign Height', 'Sign Width']] = filtered_test_df.apply(lambda row: pd.Series(getImageAndSignDimensions(row['Image Filename'], row['Center in X'], row['Center in Y'], row['Width'], row['Height'], OUTPUT_DIR_TEST_CROPPED_SPEED_ONLY)), axis = 1)
     filtered_val_df[['Image Height', 'Image Width', 'Sign Height', 'Sign Width']] = filtered_val_df.apply(lambda row: pd.Series(getImageAndSignDimensions(row['Image Filename'], row['Center in X'], row['Center in Y'], row['Width'], row['Height'], OUTPUT_DIR_VALID_CROPPED_SPEED_ONLY)), axis = 1)
 
-    print("\nRun CNN model (using Cropped images, Labeled Signs, Prohibitory Signs only)...\n")
+    print("\nRun CNN model (using Cropped images, Labeled Signs, Speed Signs only)...\n")
     # Use transformations if apply_transform = True
     if apply_transform:
         prediction_df, evaluate_info_df = croppedOnlySpeedTransformedCNNModel(filtered_train_df, filtered_test_df, filtered_val_df, OUTPUT_DIR_TRAIN_CROPPED_SPEED_ONLY, OUTPUT_DIR_TEST_CROPPED_SPEED_ONLY, OUTPUT_DIR_VALID_CROPPED_SPEED_ONLY, k_fold, grayscale, debug = True)
