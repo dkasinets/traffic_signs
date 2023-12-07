@@ -33,10 +33,6 @@ BS, IMAGE_DIM, EPOCHS = 128, 40, 100
 # Number of splits in K-Fold Cross-Validation
 K_FOLD_SPLITS = 5
 
-# NOTES: For Transformations we've got:
-# "2dhaar" - 62.963% accuracy on Test (w/ 32x32 image size)
-# "dct2" - 87.037% accuracy on Test (w/ 32x32 image size) 
-# "dft" - 64.8148% accuracy on Test (w/ 32x32 image size) 
 # Note: Transformations improvements:
 # Rather than using "2dhaar" (32x32) directly, we can do "2dhaar" (to resize) followed by "dct2". 
 # Rather than using "dft" (32x32) directly, we better do 128x128, select low freq coefficients & remove center coefficient(s) (e.g. 2x2 for even images).

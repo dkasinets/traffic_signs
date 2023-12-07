@@ -28,7 +28,7 @@ def run_combinations(name, runFunc, output_excel, k_fold, save_output):
     print(f"\nIterate over {total_combos} combinations for {name}()...")
     idx = 1
     for oversample, apply_transform, grayscale in all_combinations:
-        print(f"{runFunc} comb. #{idx}: oversample: {oversample},", f"apply_transform: {apply_transform},", f"grayscale: {grayscale}")
+        print(f"{name} comb. #{idx}: oversample: {oversample},", f"apply_transform: {apply_transform},", f"grayscale: {grayscale}")
 
         evaluate_info_df = runFunc(
             oversample = oversample,
@@ -47,7 +47,7 @@ def run_combinations(name, runFunc, output_excel, k_fold, save_output):
     # Export as .csv
     now = datetime.now()
     formatted_date = now.strftime("%m-%d-%Y-%I-%M-%S-%p")
-    runs_filename = f"{'run_all_combos_{runFunc}'}_{formatted_date}.csv"
+    runs_filename = f"{f'run_all_combos_{name}'}_{formatted_date}.csv"
     runs_df.to_csv(f"{output_excel}/{runs_filename}", index = False)
 
 
