@@ -154,7 +154,7 @@ def croppedOnlyProhibitoryTransformedCNNModel(train_df, test_df, valid_df, OUTPU
                        'batch_size': batch_size, 'transform_type': transform_type}
 
     # Here - call evaluateModel function 
-    prediction_df, evaluate_info_df = evaluateModel(predicted_class_id, train_dataset, test_dataset, valid_dataset, 
+    prediction_df, evaluate_info_df = evaluateModel('ClassID', predicted_class_id, train_dataset, test_dataset, valid_dataset, 
                                                     pred_on_val, pred_on_train, model_info_dict)
     
     if k_fold:
@@ -272,7 +272,7 @@ def croppedOnlyProhibitoryCNNModel(train_df, test_df, valid_df, OUTPUT_DIR_TRAIN
                        'batch_size': batch_size, 'transform_type': None}
 
     # Here - call evaluateModel function 
-    prediction_df, evaluate_info_df = evaluateModel(predicted_class_id, train_dataset, test_dataset, valid_dataset, 
+    prediction_df, evaluate_info_df = evaluateModel('ClassID', predicted_class_id, train_dataset, test_dataset, valid_dataset, 
                                                     pred_on_val, pred_on_train, model_info_dict)
 
     if k_fold:

@@ -61,13 +61,14 @@ def main(debug):
 
     # CNN #1
     # Number of classes: 4
-    # runCroppedOnly(oversample = False) # True is better (gives higher accuracy)
-
+    # oversample = True is better (gives higher accuracy)
+    runCroppedOnly(oversample = False, apply_transform = True, k_fold = True, grayscale = True, save_output = False, export_input_dataframes = False) 
+    
     # CNN #2
     # Number of classes: 5 
     # NOTE: Speed signs (with different speed limits) are aggregated as one class of speed sign (i.e., ClassID = 999).
     # oversample = True is better (gives higher accuracy)
-    runCroppedOnlyProhibitory(oversample = False, apply_transform = False, k_fold = True, grayscale = False, save_output = False, export_input_dataframes = False)
+    # runCroppedOnlyProhibitory(oversample = False, apply_transform = False, k_fold = True, grayscale = False, save_output = False, export_input_dataframes = False)
 
     # CNN #3
     # Number of classes: 8 

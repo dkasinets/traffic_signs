@@ -392,40 +392,41 @@ def getImagesAsPixelDataFrame(df, image_size, OUTPUT_DIR, grayscale = False):
     return pd.DataFrame(image_data, columns = columns)
 
 
-def evaluateModel(predicted_class, train_dataset, test_dataset, valid_dataset, pred_on_val, pred_on_train, model_info_dict):
+def evaluateModel(predictor_name, predicted_class, train_dataset, test_dataset, valid_dataset, pred_on_val, pred_on_train, model_info_dict):
     """ 
     Get Model's performance information 
     """
     print("\nGet Model's performance information...")
     # Create an Output Excel DataFrame
     prediction_df = pd.DataFrame({
-        "(Predicted) ClassID" : predicted_class,
-        "(Actual) ClassID" : test_dataset['ClassID'],
-        "(Actual) ClassIdDesc" : test_dataset["ClassIdDesc"],
-        "(Actual) Class Number" : test_dataset["Class Number"],
-        "(Actual) Class Label" : test_dataset["Class Label"],
-        "(Actual) MetaPath": test_dataset["MetaPath"],
-        "(Actual) ShapeId": test_dataset["ShapeId"],
-        "(Actual) ColorId": test_dataset["ColorId"],
-        "(Actual) SignId": test_dataset["SignId"],
+        f"(Predicted) {predictor_name}" : predicted_class,
+        f"(Actual) {predictor_name}" : test_dataset[predictor_name],
+        "ClassID" : test_dataset["ClassID"],
+        "ClassIdDesc" : test_dataset["ClassIdDesc"],
+        "Class Number" : test_dataset["Class Number"],
+        "Class Label" : test_dataset["Class Label"],
+        "MetaPath": test_dataset["MetaPath"],
+        "ShapeId": test_dataset["ShapeId"],
+        "ColorId": test_dataset["ColorId"],
+        "SignId": test_dataset["SignId"],
         "Image Filename": test_dataset["Image Filename"],
         "Image Height": test_dataset["Image Height"],
         "Image Width": test_dataset["Image Width"],
     })
 
     print("Evaluate\n") 
-    pred_accuracy_class_id = accuracy_score(prediction_df["(Predicted) ClassID"], prediction_df["(Actual) ClassID"])
-    print(f"ClassID Accuracy (on Valid): {round(pred_on_val['accuracy'] * 100, 4)}%")
-    print(f"ClassID Accuracy (on Train): {round(pred_on_train['accuracy'] * 100, 4)}%")
-    print(f"ClassID Accuracy (on Test): {round(pred_accuracy_class_id * 100, 4)}%")
+    pred_accuracy_class_id = accuracy_score(prediction_df[f"(Predicted) {predictor_name}"], prediction_df[f"(Actual) {predictor_name}"])
+    print(f"{predictor_name} Accuracy (on Valid): {round(pred_on_val['accuracy'] * 100, 4)}%")
+    print(f"{predictor_name} Accuracy (on Train): {round(pred_on_train['accuracy'] * 100, 4)}%")
+    print(f"{predictor_name} Accuracy (on Test): {round(pred_accuracy_class_id * 100, 4)}%")
 
     print("\npredictions: ")
     print(prediction_df)
 
     # More info to save to Excel (as a DataFrame)
-    train_class_counts_dict = {class_name: count for class_name, count in train_dataset['ClassID'].value_counts().items()}
-    test_class_counts_dict = {class_name: count for class_name, count in test_dataset['ClassID'].value_counts().items()}
-    valid_class_counts_dict = {class_name: count for class_name, count in valid_dataset['ClassID'].value_counts().items()}
+    train_class_counts_dict = {class_name: count for class_name, count in train_dataset[predictor_name].value_counts().items()}
+    test_class_counts_dict = {class_name: count for class_name, count in test_dataset[predictor_name].value_counts().items()}
+    valid_class_counts_dict = {class_name: count for class_name, count in valid_dataset[predictor_name].value_counts().items()}
     evaluate_info_df = pd.DataFrame({'Evaluation Accuracy (on Valid)': [f"{round(pred_on_val['accuracy'] * 100, 4)}%"], 
                                      'Evaluation Accuracy (on Train)': [f"{round(pred_on_train['accuracy'] * 100, 4)}%"], 
                                      'Classif. Accuracy (on Test)': [f"{round(pred_accuracy_class_id * 100, 4)}%"], 
