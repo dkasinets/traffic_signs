@@ -16,7 +16,7 @@ PROHIBITORY_ONLY_PRESENT_EXCEL = f'{ROOT_DIR}/output/excel/prohibitory_only/'
 SPEED_ONLY_PRESENT_EXCEL = f'{ROOT_DIR}/output/excel/speed_only/'
 
 
-def run_combinations(name, runFunc, output_excel):
+def run_combinations(name, runFunc, output_excel, k_fold, save_output):
     """
         Run Model (with different configurations)
     """
@@ -33,9 +33,9 @@ def run_combinations(name, runFunc, output_excel):
         evaluate_info_df = runFunc(
             oversample = oversample,
             apply_transform = apply_transform,
-            k_fold = False,
+            k_fold = k_fold,
             grayscale = grayscale,
-            save_output = False,
+            save_output = save_output,
             export_input_dataframes = False
         )
         runs_df = pd.concat([runs_df, evaluate_info_df], axis = 0, ignore_index = True)
@@ -68,19 +68,19 @@ def main(debug):
     # CNN #1
     # Number of classes: 4
     # runCroppedOnly(oversample = False, apply_transform = True, k_fold = True, grayscale = True, save_output = False, export_input_dataframes = False)
-    run_combinations(name = "runCroppedOnly", runFunc = runCroppedOnly, output_excel = CROPPED_ONLY_PRESENT_EXCEL)
+    run_combinations(name = "runCroppedOnly", runFunc = runCroppedOnly, output_excel = CROPPED_ONLY_PRESENT_EXCEL, k_fold = True, save_output = True)
 
     # CNN #2
     # Number of classes: 5 
     # NOTE: Speed signs (with different speed limits) are aggregated as one class of speed sign (i.e., ClassID = 999).
     # runCroppedOnlyProhibitory(oversample = False, apply_transform = False, k_fold = True, grayscale = False, save_output = False, export_input_dataframes = False)
-    run_combinations(name = "runCroppedOnlyProhibitory", runFunc = runCroppedOnlyProhibitory, output_excel = PROHIBITORY_ONLY_PRESENT_EXCEL)
+    run_combinations(name = "runCroppedOnlyProhibitory", runFunc = runCroppedOnlyProhibitory, output_excel = PROHIBITORY_ONLY_PRESENT_EXCEL, k_fold = True, save_output = True)
 
     # CNN #3
     # Number of classes: 8 
     # NOTE: Here, we predict speed signs only.
     # runCroppedOnlySpeedSigns(oversample = False, apply_transform = False, k_fold = True, grayscale = False, save_output = False, export_input_dataframes = False)
-    run_combinations(name = "runCroppedOnlySpeedSigns", runFunc = runCroppedOnlySpeedSigns, output_excel = SPEED_ONLY_PRESENT_EXCEL)
+    run_combinations(name = "runCroppedOnlySpeedSigns", runFunc = runCroppedOnlySpeedSigns, output_excel = SPEED_ONLY_PRESENT_EXCEL, k_fold = True, save_output = True)
 
     tmr.ShowTime() # End timer.
 
