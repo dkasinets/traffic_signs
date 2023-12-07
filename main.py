@@ -11,21 +11,26 @@ from datetime import datetime
 ROOT_DIR = "/Users/Kasinets/Dropbox/Mac/Desktop/SP22_JHU/Rodriguez/TRAFFIC_SIGNS/traffic_signs"
 DATA_DIR = f"{ROOT_DIR}/data/ts/ts/"
 # Speed Sings Only (CNN #3)
+CROPPED_ONLY_PRESENT_EXCEL = f'{ROOT_DIR}/output/excel/cropped_only/'
+PROHIBITORY_ONLY_PRESENT_EXCEL = f'{ROOT_DIR}/output/excel/prohibitory_only/'
 SPEED_ONLY_PRESENT_EXCEL = f'{ROOT_DIR}/output/excel/speed_only/'
 
 
-def run_combinations():
+def run_combinations(name, runFunc, output_excel):
     """
         Run Model (with different configurations)
     """
     oversample_options, apply_transform_options, grayscale_options = [True, False], [True, False], [True, False]
+    total_combos = len(oversample_options) * len(apply_transform_options) * len(grayscale_options)
     all_combinations = product(oversample_options, apply_transform_options, grayscale_options)
     
     runs_df = pd.DataFrame()
-    print("\nIterate over all combinations for runCroppedOnlySpeedSigns()...")
+    print(f"\nIterate over {total_combos} combinations for {name}()...")
+    idx = 1
     for oversample, apply_transform, grayscale in all_combinations:
-        print(f"oversample: {oversample},", f"apply_transform: {apply_transform},", f"grayscale: {grayscale}")
-        evaluate_info_df = runCroppedOnlySpeedSigns(
+        print(f"{runFunc} comb. #{idx}: oversample: {oversample},", f"apply_transform: {apply_transform},", f"grayscale: {grayscale}")
+
+        evaluate_info_df = runFunc(
             oversample = oversample,
             apply_transform = apply_transform,
             k_fold = False,
@@ -34,6 +39,7 @@ def run_combinations():
             export_input_dataframes = False
         )
         runs_df = pd.concat([runs_df, evaluate_info_df], axis = 0, ignore_index = True)
+        idx += 1
     
     print("runs_df: ")
     print(runs_df)
@@ -41,8 +47,8 @@ def run_combinations():
     # Export as .csv
     now = datetime.now()
     formatted_date = now.strftime("%m-%d-%Y-%I-%M-%S-%p")
-    speed_signs_runs_filename = f"{'run_all_speed_signs_combinations'}_{formatted_date}.csv"
-    runs_df.to_csv(f"{SPEED_ONLY_PRESENT_EXCEL}/{speed_signs_runs_filename}", index = False)
+    runs_filename = f"{'run_all_combos_{runFunc}'}_{formatted_date}.csv"
+    runs_df.to_csv(f"{output_excel}/{runs_filename}", index = False)
 
 
 def main(debug):
@@ -61,20 +67,20 @@ def main(debug):
 
     # CNN #1
     # Number of classes: 4
-    # oversample = True is better (gives higher accuracy)
-    runCroppedOnly(oversample = False, apply_transform = True, k_fold = True, grayscale = True, save_output = False, export_input_dataframes = False) 
-    
+    # runCroppedOnly(oversample = False, apply_transform = True, k_fold = True, grayscale = True, save_output = False, export_input_dataframes = False)
+    run_combinations(name = "runCroppedOnly", runFunc = runCroppedOnly, output_excel = CROPPED_ONLY_PRESENT_EXCEL)
+
     # CNN #2
     # Number of classes: 5 
     # NOTE: Speed signs (with different speed limits) are aggregated as one class of speed sign (i.e., ClassID = 999).
-    # oversample = True is better (gives higher accuracy)
     # runCroppedOnlyProhibitory(oversample = False, apply_transform = False, k_fold = True, grayscale = False, save_output = False, export_input_dataframes = False)
+    run_combinations(name = "runCroppedOnlyProhibitory", runFunc = runCroppedOnlyProhibitory, output_excel = PROHIBITORY_ONLY_PRESENT_EXCEL)
 
     # CNN #3
     # Number of classes: 8 
     # NOTE: Here, we predict speed signs only.
     # runCroppedOnlySpeedSigns(oversample = False, apply_transform = False, k_fold = True, grayscale = False, save_output = False, export_input_dataframes = False)
-    # run_combinations()
+    run_combinations(name = "runCroppedOnlySpeedSigns", runFunc = runCroppedOnlySpeedSigns, output_excel = SPEED_ONLY_PRESENT_EXCEL)
 
     tmr.ShowTime() # End timer.
 
