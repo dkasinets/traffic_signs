@@ -1,5 +1,6 @@
 # Description 
 - Enhancing image classification (of traffic signs) through data fusion and ensembled CNNs.
+![Alt text](FlowChart.png?raw=true "Pipeline")
 ## Pipeline: YOLO → CNN1 → CNN2 → CNN3
 - YOLO - Detect road signs: Detect bounding box coordinates (& classify into: `prohibitory` (ClassID: 0), `danger` (ClassID: 1), `mandatory` (ClassID: 2), `other` (ClassID: 3))
 - CNN1 (Cropped only) - Classify into: `prohibitory` (ClassID: 0), `danger` (ClassID: 1), `mandatory` (ClassID: 2), `other` (ClassID: 3)
