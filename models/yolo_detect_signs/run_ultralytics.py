@@ -17,7 +17,7 @@ from sklearn.metrics import accuracy_score
 from openpyxl import Workbook
 from datetime import datetime
 import time
-from models.yolo_detect_signs.ultralytics_helper import getLabeledData, getImageDimensions
+from ultralytics_helper import getLabeledData, getImageDimensions
 ult.checks()
 
 
@@ -38,6 +38,10 @@ YOLO_PRESENT_IMG = f'{ROOT_DIR}/output/images/yolo/'
 OUTPUT_DIR_TRAIN_CROPPED = f"{ROOT_DIR}/data/cropped/train/images/"
 OUTPUT_DIR_TEST_CROPPED = f"{ROOT_DIR}/data/cropped/test/images/"
 OUTPUT_DIR_VALID_CROPPED = f"{ROOT_DIR}/data/cropped/valid/images/"
+# Train/Test/Val ratios
+TRAIN_RATIO = 0.64
+VALID_RATIO = 0.16
+TEST_RATIO = 0.20
 
 
 class Timer():
@@ -257,17 +261,14 @@ def splitIntoSets(annotation_paths):
         Use a dataset of images and .txt annotations. 
         Create train, test & validation directories of files. 
     """
-    # TODO: Train set needs to be smaller. Should use %10 of the train dataset. 
-    # Use ../data/train.txt file. 
-
-    n = 600 #len(annotation_paths) 
+    n = len(annotation_paths) 
     N = list(range(n))
     random.seed(42)
     random.shuffle(N)
 
-    train_ratio = 0.7
-    valid_ratio = 0.2
-    test_ratio = 0.1
+    train_ratio = TRAIN_RATIO
+    valid_ratio = VALID_RATIO
+    test_ratio = TEST_RATIO
     
     train_size = int(train_ratio * n)
     valid_size = int(valid_ratio * n)
@@ -277,6 +278,11 @@ def splitIntoSets(annotation_paths):
     test_i = N[train_size + valid_size : ]
 
     print(f"train_i length: {len(train_i)}, valid_i length: {len(valid_i)}, test_i length: {len(test_i)}")
+
+    # Delete/ re-create train set
+    if os.path.exists(TRAIN_PATH):
+        shutil.rmtree(TRAIN_PATH)
+    os.makedirs(TRAIN_PATH)
 
     for i in train_i:
         ano_path = annotation_paths[i]
@@ -291,6 +297,11 @@ def splitIntoSets(annotation_paths):
     
     print(f"TRAIN_PATH (total files .jpg & .txt): {len(os.listdir(TRAIN_PATH))}")
 
+    # Delete/ re-create valid set
+    if os.path.exists(VALID_PATH):
+        shutil.rmtree(VALID_PATH)
+    os.makedirs(VALID_PATH)
+
     for i in valid_i:
         ano_path = annotation_paths[i]
         img_path = os.path.join(DATA_DIR, ano_path.split('/')[-1][0 : -4]+'.jpg')
@@ -303,6 +314,11 @@ def splitIntoSets(annotation_paths):
         shutil.copyfile(img_path, output_img)
 
     print(f"VALID_PATH (total files .jpg & .txt): {len(os.listdir(VALID_PATH))}")
+
+    # Delete/ re-create train set
+    if os.path.exists(TEST_PATH):
+        shutil.rmtree(TEST_PATH)
+    os.makedirs(TEST_PATH)
 
     for i in test_i:
         ano_path = annotation_paths[i]
@@ -494,11 +510,11 @@ def runYOLO():
     print("\nrunYOLO ...")
     tmr = Timer() # Set timer
 
-    splitIntoSetsImproved()
+    # splitIntoSetsImproved()
 
-    # annotation_paths = getAnnotations()
-    # print(f"Total annotated .txt filepaths #: {len(annotation_paths)}\n")
-    # splitIntoSets(annotation_paths)
+    annotation_paths = getAnnotations()
+    print(f"Total annotated .txt filepaths #: {len(annotation_paths)}\n")
+    splitIntoSets(annotation_paths)
 
     print(f"\nSplit into train and test.\n")
 
